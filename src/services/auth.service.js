@@ -191,7 +191,7 @@ exports.verifyAdminOtpService = async ({ userId, otp }) => {
   const token = jwt.sign(
     { id: user._id, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: "1h" } // shorter for admin
+    { expiresIn: "20h" } // shorter for admin
   );
 
   return {
