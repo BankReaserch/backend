@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 let isConnected = false;
 
 const connectDB = async () => {
-  if (isConnected) return;
+  if (isConnected) return Promise.resolve();
 
   try {
     if (!process.env.MONGO_URI) {
@@ -11,26 +11,28 @@ const connectDB = async () => {
     }
 
     await mongoose.connect(process.env.MONGO_URI, {
-      dbName: 'AccessAnalyser',
+      dbName: "ribis_database", // ⚠️ no spaces
       autoIndex: false,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
 
     isConnected = true;
-    console.log('MongoDB connected');
+    console.log("MongoDB connected");
 
   } catch (error) {
-    console.error('MongoDB connection failed:', error.message);
+    console.error("MongoDB connection failed:", error.message);
 
-    // Retry safely
-    setTimeout(() => {
-      console.log('Retrying MongoDB connection...');
-      connectDB();
-    }, 5000);
+    // Retry
+    return new Promise((resolve) => {
+      setTimeout(async () => {
+        console.log("Retrying MongoDB connection...");
+        await connectDB();
+        resolve();
+      }, 5000);
+    });
   }
 };
-
 // Events
 mongoose.connection.on('error', (err) => {
   console.error('MongoDB runtime error:', err.message);

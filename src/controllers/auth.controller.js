@@ -1,14 +1,106 @@
-const register = require("../services/auth.service");
+const {
+  register,
+  verifyEmailService,
+  loginService,
+  verifyAdminOtpService,
+  changePasswordService,
+} = require("../services/auth.service");
 
+
+// REGISTER
 exports.register = async (req, res, next) => {
   try {
-    const result = await register.check();
+    const result = await register(req.body);
 
-    return res.status(200).json({
+    res.status(201).json({
       success: true,
       data: result,
     });
-  } catch (error) {
-    next(error); // pass to global error handler
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// VERIFY EMAIL
+exports.verifyEmail = async (req, res, next) => {
+  try {
+    const result = await verifyEmailService(req.query.token);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// LOGIN (handles both user + admin step1)
+exports.login = async (req, res, next) => {
+  try {
+    const result = await loginService(req.body);
+
+    // 👑 ADMIN STEP 1 → OTP
+    if (result.requiresOtp) {
+      return res.status(200).json(result);
+    }
+
+    // 👤 NORMAL USER LOGIN
+    const isProd = process.env.NODE_ENV === "production";
+
+    res.cookie("token", result.token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "strict" : "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      message: "Login successful",
+      user: result.user,
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// 👑 ADMIN OTP VERIFY (STEP 2)
+exports.verifyAdminOtp = async (req, res, next) => {
+  try {
+    const result = await verifyAdminOtpService(req.body);
+
+    // 🔥 Force password change
+    if (result.requirePasswordChange) {
+      return res.status(200).json(result);
+    }
+
+    const isProd = process.env.NODE_ENV === "production";
+
+    res.cookie("token", result.token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: "strict", // always strict for admin
+      maxAge: 60 * 60 * 1000, // 1 hour
+    });
+
+    res.status(200).json({
+      message: "Admin login successful",
+      user: result.user,
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// 🔐 CHANGE PASSWORD
+exports.changePassword = async (req, res, next) => {
+  try {
+    const result = await changePasswordService(req.body);
+
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
   }
 };
