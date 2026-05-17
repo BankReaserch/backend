@@ -1,24 +1,19 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async (to, verificationLink) => {
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail", // for dev only
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // use App Password (NOT your real password)
-      },
-    });
-
-    const mailOptions = {
-      from: `"Your App" <${process.env.EMAIL_USER}>`,
+    const response = await resend.emails.send({
+      from: "Ribis <hello@samiramrullah.com>",
       to,
       subject: "Verify Your Email",
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6">
           <h2>Email Verification</h2>
+
           <p>Click the button below to verify your account:</p>
-          
+
           <a href="${verificationLink}" 
              style="
                display:inline-block;
@@ -34,6 +29,7 @@ const sendEmail = async (to, verificationLink) => {
           <p style="margin-top:20px;">
             Or copy and paste this link in your browser:
           </p>
+
           <p>${verificationLink}</p>
 
           <p style="color: gray; font-size: 12px;">
@@ -41,11 +37,9 @@ const sendEmail = async (to, verificationLink) => {
           </p>
         </div>
       `,
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
-
-    console.log("✅ Email sent to:", to);
+    console.log("✅ Email sent:", response);
   } catch (error) {
     console.error("❌ Email sending failed:", error);
     throw new Error("Email could not be sent");
