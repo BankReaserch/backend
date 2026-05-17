@@ -2,18 +2,15 @@ const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 
 const app = express();
 
-// routes
 const authRoutes = require("./routes/auth.routes");
 const audioRoutes = require("./routes/audio.routes");
+const bookRoutes = require('./routes/book.routes');
 
 app.set("trust proxy", 1);
-
-// =========================
-// CORS
-// =========================
 const allowedOrigins = [
   "http://localhost:3000",
   "https://ribiswebsitedemo.netlify.app",
@@ -53,23 +50,25 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// =========================
-// MIDDLEWARES
-// =========================
 app.use(morgan("dev"));
 app.use(cookieParser());
 
 app.use(express.json());
+app.use(
+  "/storage/covers",
+  express.static(
+    path.join(
+      __dirname,
+      "../storage/covers"
+    )
+  )
+);
 
 app.use(
   express.urlencoded({
     extended: true,
   })
 );
-
-// =========================
-// ROUTES
-// =========================
 app.use(
   "/api/auth",
   authRoutes
@@ -79,10 +78,10 @@ app.use(
   "/api/audio",
   audioRoutes
 );
-
-// =========================
-// 404
-// =========================
+app.use(
+  "/api/book",
+  bookRoutes
+);
 app.use((req, res) => {
   res.status(404).json({
     message:
@@ -90,9 +89,6 @@ app.use((req, res) => {
   });
 });
 
-// =========================
-// ERROR HANDLER
-// =========================
 app.use(
   (
     error,
