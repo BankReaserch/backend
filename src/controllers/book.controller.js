@@ -4,6 +4,7 @@ const {
   addBookService,
   getBooksService,
   downloadBookService,
+  updateBookService,
 } = require("../services/book.service");
 
 
@@ -95,6 +96,32 @@ exports.downloadBookController =
         message:
           error.message ||
           "Access denied",
+      });
+    }
+  };
+
+
+  exports.updateBookController =
+  async (req, res) => {
+
+    try {
+
+      const result =
+        await updateBookService(req);
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Book updated successfully",
+        data: result,
+      });
+
+    } catch (error) {
+
+      return res.status(500).json({
+        success: false,
+        message:
+          error.message,
       });
     }
   };

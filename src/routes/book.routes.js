@@ -11,6 +11,7 @@ const {
   addBookController,
   getBooksController,
   downloadBookController,
+  updateBookController,
 } = require("../controllers/book.controller");
 
 
@@ -42,6 +43,21 @@ router.get(
 router.get(
   "/download/:id",
   downloadBookController
+);
+
+router.put(
+  "/:id",
+  upload.fields([
+    {
+      name: "coverImage",
+      maxCount: 1,
+    },
+    {
+      name: "bookFile",
+      maxCount: 1,
+    },
+  ]),
+  updateBookController
 );
 
 module.exports = router;

@@ -157,3 +157,57 @@ exports.downloadBookService =
         book.originalBookName,
     };
   };
+
+  exports.updateBookService =
+  async (req) => {
+
+    const { id } = req.params;
+
+    const existingBook =
+      await Book.findById(id);
+
+    if (!existingBook) {
+      throw new Error(
+        "Book not found"
+      );
+    }
+
+    const updateData = {
+      ...req.body,
+    };
+
+    // NEW COVER
+    if (
+      req.files?.coverImage?.[0]
+    ) {
+
+      updateData.coverImage =
+        req.files.coverImage[0]
+          .path.replace(/\\/g, "/");
+    }
+
+    // NEW FILE
+    if (
+      req.files?.bookFile?.[0]
+    ) {
+
+      updateData.bookFile =
+        req.files.bookFile[0]
+          .path.replace(/\\/g, "/");
+
+      updateData.originalBookName =
+        req.files.bookFile[0]
+          .originalname;
+    }
+
+    const updatedBook =
+      await Book.findByIdAndUpdate(
+        id,
+        updateData,
+        {
+          new: true,
+        }
+      );
+
+    return updatedBook;
+  };

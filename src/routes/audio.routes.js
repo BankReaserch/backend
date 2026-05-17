@@ -1,11 +1,8 @@
 const express = require("express");
+const {authenticate,isAdmin} = require('../middleware/auth.middleware');
 
-const router =
-  express.Router();
-
-const upload =
-  require("../middleware/uploadAudio");
-
+const router =express.Router();
+const upload =require("../middleware/uploadAudio");
 const {
   uploadAudio,
   getAudios,
@@ -14,34 +11,25 @@ const {
   downloadAudio,
 } = require("../controllers/audio.controller");
 
-// =========================
-// UPLOAD
-// =========================
-router.post(
-  "/upload",
-  upload.single("audio"),
-  uploadAudio
-);
+router.post("/upload",authenticate,isAdmin,upload.single("audio"),uploadAudio);
 
-// =========================
-// GET ALL
-// =========================
-router.get("/", getAudios);
+router.get("/",authenticate,isAdmin, getAudios);
 
-// =========================
-// STREAM AUDIO
-// =========================
 router.get(
   "/stream/:id",
+  authenticate,
+  isAdmin,
   streamAudio
 );
 
 router.get(
   "/download/:id",
+  authenticate,isAdmin,
   downloadAudio
 );
 router.delete(
   "/:id",
+  authenticate,isAdmin,
   deleteAudio
 );
 
