@@ -5,6 +5,9 @@ const {
   getBooksService,
   downloadBookService,
   updateBookService,
+  getSingleBookService,
+  deleteBookService,
+  getRelatedBooksService,
 } = require("../services/book.service");
 
 
@@ -46,7 +49,7 @@ exports.getBooksController =
     try {
 
       const books =
-        await getBooksService();
+        await getBooksService(req);
 
       return res.status(200).json({
         success: true,
@@ -123,5 +126,86 @@ exports.downloadBookController =
         message:
           error.message,
       });
+    }
+  };
+
+  // GET SINGLE BOOK
+exports.getSingleBookController =
+  async (req, res) => {
+
+    try {
+
+      const result =
+        await getSingleBookService(
+          req
+        );
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+
+    } catch (error) {
+
+      return res.status(404).json({
+        success: false,
+        message:
+          error.message,
+      });
+
+    }
+  };
+
+  // DELETE BOOK
+exports.deleteBookController =
+  async (req, res) => {
+
+    try {
+
+      await deleteBookService(
+        req
+      );
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Book deleted successfully",
+      });
+
+    } catch (error) {
+
+      return res.status(500).json({
+        success: false,
+        message:
+          error.message,
+      });
+
+    }
+  };
+
+  // RELATED BOOKS
+exports.getRelatedBooksController =
+  async (req, res) => {
+
+    try {
+
+      const result =
+        await getRelatedBooksService(
+          req
+        );
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+
+    } catch (error) {
+
+      return res.status(500).json({
+        success: false,
+        message:
+          error.message,
+      });
+
     }
   };

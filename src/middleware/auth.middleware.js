@@ -1,20 +1,21 @@
 const User = require('../models/user.model')
+const jwt = require("jsonwebtoken");
 exports.authenticate = async (req, res, next) => {
   try {
     const token = req.cookies?.token;
     if (!token) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
     const user = await User.findById(decoded.sub)
       .select("role tokenVersion isActive")
       .lean();
-
     if (!user || user.tokenVersion !== decoded.tokenVersion) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-
+   
+    
     if (user.role !== "admin" && !user.isActive) {
       return res.status(403).json({
         message: "Account is inactive. Please contact support."
@@ -24,6 +25,8 @@ exports.authenticate = async (req, res, next) => {
       id: decoded.sub,
       role: user.role
     };
+    console.log("here");
+    
     next();
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {

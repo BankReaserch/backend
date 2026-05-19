@@ -12,8 +12,35 @@ const {
   getBooksController,
   downloadBookController,
   updateBookController,
+  getSingleBookController,
+  deleteBookController,
+  getRelatedBooksController,
 } = require("../controllers/book.controller");
 
+
+// GET ALL BOOKS
+router.get(
+  "/",
+  getBooksController
+);
+
+// RELATED BOOKS
+router.get(
+  "/related/:category/:id",
+  getRelatedBooksController
+);
+
+// DOWNLOAD
+router.get(
+  "/download/:id",
+  downloadBookController
+);
+
+// GET SINGLE BOOK
+router.get(
+  "/:id",
+  getSingleBookController
+);
 
 // ADD BOOK
 router.post(
@@ -31,20 +58,7 @@ router.post(
   addBookController
 );
 
-
-// GET ALL BOOKS
-router.get(
-  "/",
-  getBooksController
-);
-
-
-// PROTECTED DOWNLOAD
-router.get(
-  "/download/:id",
-  downloadBookController
-);
-
+// UPDATE BOOK
 router.put(
   "/:id",
   upload.fields([
@@ -58,6 +72,12 @@ router.put(
     },
   ]),
   updateBookController
+);
+
+// DELETE BOOK
+router.delete(
+  "/:id",
+  deleteBookController
 );
 
 module.exports = router;
