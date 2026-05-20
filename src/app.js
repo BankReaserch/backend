@@ -22,6 +22,7 @@ const bookRoutes =
   require("./routes/book.routes");
 
 const orderRoutes = require('./routes/order.routes')
+const qnaRoutes =require("./routes/qna.routes");
 
 // TRUST PROXY
 app.set("trust proxy", 1);
@@ -127,6 +128,7 @@ app.use(
   "/api/book",
   bookRoutes
 );
+app.use("/api/qna",qnaRoutes)
 
 // ======================
 // 404 HANDLER

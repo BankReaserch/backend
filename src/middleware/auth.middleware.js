@@ -7,10 +7,11 @@ exports.authenticate = async (req, res, next) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    const user = await User.findById(decoded.sub)
+    const user = await User.findById(decoded.id)
       .select("role tokenVersion isActive")
       .lean();
+    console.log(user,"useruseruser");
+    
     if (!user || user.tokenVersion !== decoded.tokenVersion) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -25,7 +26,6 @@ exports.authenticate = async (req, res, next) => {
       id: decoded.sub,
       role: user.role
     };
-    console.log("here");
     
     next();
   } catch (error) {
