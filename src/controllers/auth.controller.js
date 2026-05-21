@@ -1,14 +1,10 @@
-// controllers/auth.controller.js
-
 const {
   register,
   verifyEmailService,
   loginService,
   verifyAdminOtpService,
   changePasswordService,
-} = require(
-  "../services/auth.service"
-);
+} = require("../services/auth.service");
 
 /*
 ========================================
@@ -19,9 +15,12 @@ COOKIE CONFIG
 const COOKIE_OPTIONS = {
   httpOnly: true,
 
-  secure: true,
+  secure: process.env.NODE_ENV === "production",
 
-  sameSite: "none",
+  sameSite:
+    process.env.NODE_ENV === "production"
+      ? "none"
+      : "lax",
 
   path: "/",
 
@@ -30,8 +29,14 @@ const COOKIE_OPTIONS = {
     60 *
     60 *
     24 *
-    7,
+    7, // 7 days
 };
+
+/*
+========================================
+HELPER
+========================================
+*/
 
 const sendAuthCookie = (
   res,
@@ -72,7 +77,9 @@ exports.register =
         });
 
     } catch (error) {
+
       next(error);
+
     }
   };
 
@@ -97,13 +104,12 @@ exports.verifyEmail =
 
       return res
         .status(200)
-        .json({
-          success: true,
-          ...result,
-        });
+        .json(result);
 
     } catch (error) {
+
       next(error);
+
     }
   };
 
@@ -126,9 +132,14 @@ exports.login =
           req.body
         );
 
+      /*
+      ADMIN OTP FLOW
+      */
+
       if (
         result.requiresOtp
       ) {
+
         return res
           .status(200)
           .json({
@@ -137,7 +148,12 @@ exports.login =
             userId:
               result.userId,
           });
+
       }
+
+      /*
+      NORMAL USER LOGIN
+      */
 
       sendAuthCookie(
         res,
@@ -148,14 +164,18 @@ exports.login =
         .status(200)
         .json({
           success: true,
+
           message:
             "Login successful",
+
           user:
             result.user,
         });
 
     } catch (error) {
+
       next(error);
+
     }
   };
 
@@ -178,6 +198,31 @@ exports.verifyAdminOtp =
           req.body
         );
 
+      /*
+      FORCE PASSWORD CHANGE
+      */
+
+      if (
+        result.requirePasswordChange
+      ) {
+
+        return res
+          .status(200)
+          .json({
+            success: true,
+
+            requirePasswordChange: true,
+
+            userId:
+              result.userId,
+          });
+
+      }
+
+      /*
+      ADMIN LOGIN
+      */
+
       sendAuthCookie(
         res,
         result.token
@@ -187,49 +232,19 @@ exports.verifyAdminOtp =
         .status(200)
         .json({
           success: true,
+
           message:
             "Admin login successful",
+
           user:
             result.user,
         });
 
     } catch (error) {
+
       next(error);
+
     }
-  };
-
-/*
-========================================
-GET ME
-========================================
-*/
-
-exports.getMe =
-  async (
-    req,
-    res
-  ) => {
-
-    return res
-      .status(200)
-      .json({
-        success: true,
-
-        authenticated: true,
-
-        user: {
-          id:
-            req.user.id,
-
-          role:
-            req.user.role,
-        },
-
-        isAdmin:
-          req.user
-            .role ===
-          "admin",
-      });
   };
 
 /*
@@ -248,23 +263,67 @@ exports.changePassword =
 
       const result =
         await changePasswordService(
-          {
-            userId:
-              req.user.id,
-
-            ...req.body,
-          }
+          req.body
         );
+
+      return res
+        .status(200)
+        .json(result);
+
+    } catch (error) {
+
+      next(error);
+
+    }
+  };
+
+/*
+========================================
+GET CURRENT USER
+========================================
+*/
+
+exports.getMe =
+  async (
+    req,
+    res
+  ) => {
+    try {
 
       return res
         .status(200)
         .json({
           success: true,
-          ...result,
+
+          authenticated: true,
+
+          user: {
+            id:
+              req.user.id,
+
+            role:
+              req.user.role,
+          },
+
+          isAdmin:
+            req.user
+              .role ===
+            "admin",
         });
 
     } catch (error) {
-      next(error);
+
+      return res
+        .status(500)
+        .json({
+          success: false,
+
+          authenticated: false,
+
+          message:
+            "Failed to fetch user",
+        });
+
     }
   };
 
@@ -279,22 +338,47 @@ exports.logout =
     req,
     res
   ) => {
+    try {
 
-    res.clearCookie(
-      "token",
-      {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        path: "/",
-      }
-    );
+      res.clearCookie(
+        "token",
+        {
+          httpOnly: true,
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message:
-          "Logged out successfully",
-      });
+          secure:
+            process.env.NODE_ENV ===
+            "production",
+
+          sameSite:
+            process.env.NODE_ENV ===
+            "production"
+              ? "none"
+              : "lax",
+
+          path: "/",
+        }
+      );
+
+      return res
+        .status(200)
+        .json({
+          success: true,
+
+          message:
+            "Logged out successfully",
+        });
+
+    } catch (error) {
+
+      return res
+        .status(500)
+        .json({
+          success: false,
+
+          message:
+            "Logout failed",
+        });
+
+    }
   };
+
