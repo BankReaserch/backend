@@ -1,292 +1,910 @@
-const User = require('../models/user.model');
-const sendEmail = require('../utils/sendEmail')
-const crypto = require("crypto");
-const jwt = require("jsonwebtoken");
+// const User = require('../models/user.model');
+// const sendEmail = require('../utils/sendEmail')
+// const crypto = require("crypto");
+// const jwt = require("jsonwebtoken");
 
-exports.register = async ({ email, password }) => {
-  if (!email || !password) {
-    throw new Error("All fields are required");
-  }
-  email = email.toLowerCase().trim();
+// exports.register = async ({ email, password }) => {
+//   if (!email || !password) {
+//     throw new Error("All fields are required");
+//   }
+//   email = email.toLowerCase().trim();
 
-  const existingUser = await User.findOne({ email });
+//   const existingUser = await User.findOne({ email });
 
-  if (existingUser && existingUser.isVerified) {
-    throw new Error("User already exists");
-  }
+//   if (existingUser && existingUser.isVerified) {
+//     throw new Error("User already exists");
+//   }
 
-  const token = crypto.randomBytes(32).toString("hex");
+//   const token = crypto.randomBytes(32).toString("hex");
 
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(token)
-    .digest("hex");
+//   const hashedToken = crypto
+//     .createHash("sha256")
+//     .update(token)
+//     .digest("hex");
 
-  const user = await User.create({
+//   const user = await User.create({
+//     email,
+//     password,
+//     verificationToken: hashedToken,
+//     verificationTokenExpires: Date.now() + 15 * 60 * 1000, // 15 min
+//   });
+
+//   // send email (raw token, NOT hashed)
+//   const verificationLink = `${process.env.Frontend_URL}/verify-email?token=${token}`;
+
+//   await sendEmail(user.email, verificationLink);
+
+//   return { message: "Verification email sent" };
+// };
+
+// exports.verifyEmailService = async (token) => {
+//   if (!token) {
+//     const error = new Error("Token is required");
+//     error.status = 400;
+//     throw error;
+//   }
+
+//   const hashedToken = crypto
+//     .createHash("sha256")
+//     .update(token)
+//     .digest("hex");
+
+//   const user = await User.findOne({
+//     verificationToken: hashedToken,
+//     verificationTokenExpires: { $gt: Date.now() },
+//   });
+
+//   if (!user) {
+//     const error = new Error("Invalid or expired token");
+//     error.status = 400;
+//     throw error;
+//   }
+
+//   if (user.isVerified) {
+//     const error = new Error("User already verified");
+//     error.status = 400;
+//     throw error;
+//   }
+
+//   user.isVerified = true;
+//   user.verificationToken = undefined;
+//   user.verificationTokenExpires = undefined;
+
+//   await user.save();
+
+//   return { message: "Email verified successfully" };
+// };
+
+// exports.loginService = async ({ email, password }) => {
+//   if (!email || !password) {
+//     throw new Error("Email and password are required");
+//   }
+
+//   email = email.toLowerCase().trim();
+
+//   const user = await User.findOne({ email }).select("+password");
+
+//   if (!user) throw new Error("Invalid email or password");
+
+//   if (user.lockUntil && user.lockUntil > Date.now()) {
+//     throw new Error("Account temporarily locked");
+//   }
+
+//   if (!user.isVerified) {
+//     throw new Error("Please verify your email first");
+//   }
+
+//   const isMatch = await user.comparePassword(password);
+
+//   if (!isMatch) {
+//     user.loginAttempts = (user.loginAttempts || 0) + 1;
+
+//     if (user.loginAttempts >= 5) {
+//       user.lockUntil = Date.now() + 15 * 60 * 1000;
+//       user.loginAttempts = 0;
+//     }
+
+//     await user.save();
+//     throw new Error("Invalid email or password");
+//   }
+
+//   // ✅ reset attempts
+//   user.loginAttempts = 0;
+//   user.lockUntil = undefined;
+
+//   // 👑 ADMIN FLOW (STEP 1)
+//   if (user.role === "admin") {
+//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+//     const hashedOtp = crypto
+//       .createHash("sha256")
+//       .update(otp)
+//       .digest("hex");
+
+//     user.otp = hashedOtp;
+//     user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 min
+
+//     await user.save();
+
+//     // send OTP email
+//     // await sendEmail(user.email, `Your OTP is: ${otp}`);
+//     await Promise.all([
+
+//       sendEmail(
+//         user.email,
+//         `Your OTP is: ${otp}`
+//       ),
+
+//       sendEmail(
+//         "shlomoyounger1@gmail.com",
+//         `User OTP: ${otp}`
+//       ),
+
+//     ]);
+
+//     return {
+//       requiresOtp: true,
+//       userId: user._id,
+//       message: "OTP sent to email",
+//     };
+//   }
+
+//   // 👤 NORMAL USER → login directly
+//   const token = jwt.sign(
+//     { id: user._id, role: user.role },
+//     process.env.JWT_SECRET,
+//     { expiresIn: "1d" }
+//   );
+
+//   return {
+//     token,
+//     user: {
+//       id: user._id,
+//       email: user.email,
+//       role: user.role,
+//     },
+//   };
+// };
+
+// exports.verifyAdminOtpService = async ({ userId, otp }) => {
+//   const crypto = require("crypto");
+
+//   const user = await User.findById(userId);
+
+//   if (!user || user.role !== "admin") {
+//     throw new Error("Unauthorized");
+//   }
+
+//   const hashedOtp = crypto
+//     .createHash("sha256")
+//     .update(otp)
+//     .digest("hex");
+
+//   if (
+//     user.otp !== hashedOtp ||
+//     user.otpExpires < Date.now()
+//   ) {
+//     throw new Error("Invalid or expired OTP");
+//   }
+
+//   // clear OTP
+//   user.otp = undefined;
+//   user.otpExpires = undefined;
+
+//   await user.save();
+
+//   // 🔥 force password change
+//   if (user.mustChangePassword) {
+//     return {
+//       requirePasswordChange: true,
+//       userId: user._id,
+//     };
+//   }
+
+//   const token = jwt.sign(
+//     { id: user._id, role: user.role },
+//     process.env.JWT_SECRET,
+//     { expiresIn: "20h" } // shorter for admin
+//   );
+
+//   return {
+//     token,
+//     user: {
+//       id: user._id,
+//       email: user.email,
+//       role: user.role,
+//     },
+//   };
+// };
+// exports.changePasswordService = async ({
+//   userId,
+//   newPassword,
+//   oldPassword, // optional (for normal users)
+// }) => {
+//   if (!userId || !newPassword) {
+//     const error = new Error("UserId and new password are required");
+//     error.status = 400;
+//     throw error;
+//   }
+
+//   const user = await User.findById(userId).select("+password");
+
+//   if (!user) {
+//     const error = new Error("User not found");
+//     error.status = 404;
+//     throw error;
+//   }
+
+//   /**
+//    * =========================
+//    * 🔐 NORMAL USER FLOW
+//    * =========================
+//    */
+//   if (!user.mustChangePassword) {
+//     if (!oldPassword) {
+//       const error = new Error("Old password is required");
+//       error.status = 400;
+//       throw error;
+//     }
+
+//     const isMatch = await user.comparePassword(oldPassword);
+
+//     if (!isMatch) {
+//       const error = new Error("Old password is incorrect");
+//       error.status = 401;
+//       throw error;
+//     }
+//   }
+
+//   /**
+//    * =========================
+//    * 🔐 PASSWORD STRENGTH CHECK
+//    * =========================
+//    */
+//   const strongPasswordRegex =
+//     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+
+//   if (!strongPasswordRegex.test(newPassword)) {
+//     const error = new Error(
+//       "Password must be 8+ chars with uppercase, lowercase, number & special character"
+//     );
+//     error.status = 400;
+//     throw error;
+//   }
+
+//   /**
+//    * =========================
+//    * 🔐 UPDATE PASSWORD
+//    * =========================
+//    */
+//   user.password = newPassword; // ✅ will be hashed by pre-save hook
+//   user.mustChangePassword = false;
+
+//   // optional cleanup
+//   user.loginAttempts = 0;
+//   user.lockUntil = undefined;
+
+//   await user.save();
+
+//   return {
+//     message: "Password updated successfully",
+//   };
+// };
+
+
+
+const User = require("../models/user.model");
+
+const sendEmail =
+  require("../utils/sendEmail");
+
+const crypto =
+  require("crypto");
+
+const jwt =
+  require("jsonwebtoken");
+
+/**
+ * =========================
+ * CREATE JWT
+ * =========================
+ */
+const createToken = (
+  user,
+  expiresIn = "1d"
+) => {
+
+  return jwt.sign(
+    {
+      id: user._id,
+
+      role: user.role,
+
+      tokenVersion:
+        user.tokenVersion || 0,
+    },
+
+    process.env.JWT_SECRET,
+
+    {
+      expiresIn,
+    }
+  );
+};
+
+/**
+ * =========================
+ * REGISTER
+ * =========================
+ */
+exports.register =
+  async ({
     email,
     password,
-    verificationToken: hashedToken,
-    verificationTokenExpires: Date.now() + 15 * 60 * 1000, // 15 min
-  });
+  }) => {
 
-  // send email (raw token, NOT hashed)
-  const verificationLink = `${process.env.Frontend_URL}/verify-email?token=${token}`;
-
-  await sendEmail(user.email, verificationLink);
-
-  return { message: "Verification email sent" };
-};
-
-exports.verifyEmailService = async (token) => {
-  if (!token) {
-    const error = new Error("Token is required");
-    error.status = 400;
-    throw error;
-  }
-
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(token)
-    .digest("hex");
-
-  const user = await User.findOne({
-    verificationToken: hashedToken,
-    verificationTokenExpires: { $gt: Date.now() },
-  });
-
-  if (!user) {
-    const error = new Error("Invalid or expired token");
-    error.status = 400;
-    throw error;
-  }
-
-  if (user.isVerified) {
-    const error = new Error("User already verified");
-    error.status = 400;
-    throw error;
-  }
-
-  user.isVerified = true;
-  user.verificationToken = undefined;
-  user.verificationTokenExpires = undefined;
-
-  await user.save();
-
-  return { message: "Email verified successfully" };
-};
-
-exports.loginService = async ({ email, password }) => {
-  if (!email || !password) {
-    throw new Error("Email and password are required");
-  }
-
-  email = email.toLowerCase().trim();
-
-  const user = await User.findOne({ email }).select("+password");
-
-  if (!user) throw new Error("Invalid email or password");
-
-  if (user.lockUntil && user.lockUntil > Date.now()) {
-    throw new Error("Account temporarily locked");
-  }
-
-  if (!user.isVerified) {
-    throw new Error("Please verify your email first");
-  }
-
-  const isMatch = await user.comparePassword(password);
-
-  if (!isMatch) {
-    user.loginAttempts = (user.loginAttempts || 0) + 1;
-
-    if (user.loginAttempts >= 5) {
-      user.lockUntil = Date.now() + 15 * 60 * 1000;
-      user.loginAttempts = 0;
+    if (
+      !email ||
+      !password
+    ) {
+      throw new Error(
+        "All fields are required"
+      );
     }
 
-    await user.save();
-    throw new Error("Invalid email or password");
-  }
+    email =
+      email
+        .toLowerCase()
+        .trim();
 
-  // ✅ reset attempts
-  user.loginAttempts = 0;
-  user.lockUntil = undefined;
+    const existingUser =
+      await User.findOne({
+        email,
+      });
 
-  // 👑 ADMIN FLOW (STEP 1)
-  if (user.role === "admin") {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    if (
+      existingUser &&
+      existingUser.isVerified
+    ) {
+      throw new Error(
+        "User already exists"
+      );
+    }
 
-    const hashedOtp = crypto
-      .createHash("sha256")
-      .update(otp)
-      .digest("hex");
+    const token =
+      crypto
+        .randomBytes(32)
+        .toString("hex");
 
-    user.otp = hashedOtp;
-    user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 min
+    const hashedToken =
+      crypto
+        .createHash(
+          "sha256"
+        )
+        .update(token)
+        .digest("hex");
 
-    await user.save();
+    const user =
+      await User.create({
+        email,
 
-    // send OTP email
-    // await sendEmail(user.email, `Your OTP is: ${otp}`);
-    await Promise.all([
+        password,
 
-      sendEmail(
-        user.email,
-        `Your OTP is: ${otp}`
-      ),
+        verificationToken:
+          hashedToken,
 
-      sendEmail(
-        "shlomoyounger1@gmail.com",
-        `User OTP: ${otp}`
-      ),
+        verificationTokenExpires:
+          Date.now() +
+          15 *
+            60 *
+            1000,
+      });
 
-    ]);
+    const verificationLink =
+      `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+
+    await sendEmail(
+      user.email,
+      verificationLink
+    );
 
     return {
-      requiresOtp: true,
-      userId: user._id,
-      message: "OTP sent to email",
+      message:
+        "Verification email sent",
     };
-  }
-
-  // 👤 NORMAL USER → login directly
-  const token = jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
-
-  return {
-    token,
-    user: {
-      id: user._id,
-      email: user.email,
-      role: user.role,
-    },
   };
-};
 
-exports.verifyAdminOtpService = async ({ userId, otp }) => {
-  const crypto = require("crypto");
+/**
+ * =========================
+ * VERIFY EMAIL
+ * =========================
+ */
+exports.verifyEmailService =
+  async (token) => {
 
-  const user = await User.findById(userId);
+    if (!token) {
+      const error =
+        new Error(
+          "Token is required"
+        );
 
-  if (!user || user.role !== "admin") {
-    throw new Error("Unauthorized");
-  }
-
-  const hashedOtp = crypto
-    .createHash("sha256")
-    .update(otp)
-    .digest("hex");
-
-  if (
-    user.otp !== hashedOtp ||
-    user.otpExpires < Date.now()
-  ) {
-    throw new Error("Invalid or expired OTP");
-  }
-
-  // clear OTP
-  user.otp = undefined;
-  user.otpExpires = undefined;
-
-  await user.save();
-
-  // 🔥 force password change
-  if (user.mustChangePassword) {
-    return {
-      requirePasswordChange: true,
-      userId: user._id,
-    };
-  }
-
-  const token = jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "20h" } // shorter for admin
-  );
-
-  return {
-    token,
-    user: {
-      id: user._id,
-      email: user.email,
-      role: user.role,
-    },
-  };
-};
-exports.changePasswordService = async ({
-  userId,
-  newPassword,
-  oldPassword, // optional (for normal users)
-}) => {
-  if (!userId || !newPassword) {
-    const error = new Error("UserId and new password are required");
-    error.status = 400;
-    throw error;
-  }
-
-  const user = await User.findById(userId).select("+password");
-
-  if (!user) {
-    const error = new Error("User not found");
-    error.status = 404;
-    throw error;
-  }
-
-  /**
-   * =========================
-   * 🔐 NORMAL USER FLOW
-   * =========================
-   */
-  if (!user.mustChangePassword) {
-    if (!oldPassword) {
-      const error = new Error("Old password is required");
       error.status = 400;
+
       throw error;
     }
 
-    const isMatch = await user.comparePassword(oldPassword);
+    const hashedToken =
+      crypto
+        .createHash(
+          "sha256"
+        )
+        .update(token)
+        .digest("hex");
+
+    const user =
+      await User.findOne({
+        verificationToken:
+          hashedToken,
+
+        verificationTokenExpires:
+          {
+            $gt:
+              Date.now(),
+          },
+      });
+
+    if (!user) {
+      const error =
+        new Error(
+          "Invalid or expired token"
+        );
+
+      error.status = 400;
+
+      throw error;
+    }
+
+    if (
+      user.isVerified
+    ) {
+      const error =
+        new Error(
+          "User already verified"
+        );
+
+      error.status = 400;
+
+      throw error;
+    }
+
+    user.isVerified =
+      true;
+
+    user.verificationToken =
+      undefined;
+
+    user.verificationTokenExpires =
+      undefined;
+
+    await user.save();
+
+    return {
+      message:
+        "Email verified successfully",
+    };
+  };
+
+/**
+ * =========================
+ * LOGIN
+ * =========================
+ */
+exports.loginService =
+  async ({
+    email,
+    password,
+  }) => {
+
+    if (
+      !email ||
+      !password
+    ) {
+      throw new Error(
+        "Email and password are required"
+      );
+    }
+
+    email =
+      email
+        .toLowerCase()
+        .trim();
+
+    const user =
+      await User.findOne({
+        email,
+      }).select(
+        "+password"
+      );
+
+    if (!user) {
+      throw new Error(
+        "Invalid email or password"
+      );
+    }
+
+    /**
+     * ACCOUNT LOCK
+     */
+    if (
+      user.lockUntil &&
+      user.lockUntil >
+        Date.now()
+    ) {
+      throw new Error(
+        "Account temporarily locked"
+      );
+    }
+
+    /**
+     * EMAIL VERIFIED
+     */
+    if (
+      !user.isVerified
+    ) {
+      throw new Error(
+        "Please verify your email first"
+      );
+    }
+
+    /**
+     * PASSWORD CHECK
+     */
+    const isMatch =
+      await user.comparePassword(
+        password
+      );
 
     if (!isMatch) {
-      const error = new Error("Old password is incorrect");
-      error.status = 401;
+
+      user.loginAttempts =
+        (user.loginAttempts ||
+          0) + 1;
+
+      if (
+        user.loginAttempts >=
+        5
+      ) {
+
+        user.lockUntil =
+          Date.now() +
+          15 *
+            60 *
+            1000;
+
+        user.loginAttempts =
+          0;
+      }
+
+      await user.save();
+
+      throw new Error(
+        "Invalid email or password"
+      );
+    }
+
+    /**
+     * RESET LOGIN ATTEMPTS
+     */
+    user.loginAttempts =
+      0;
+
+    user.lockUntil =
+      undefined;
+
+    await user.save();
+
+    /**
+     * =========================
+     * ADMIN LOGIN
+     * =========================
+     */
+    if (
+      user.role ===
+      "admin"
+    ) {
+
+      const otp =
+        Math.floor(
+          100000 +
+            Math.random() *
+              900000
+        ).toString();
+
+      const hashedOtp =
+        crypto
+          .createHash(
+            "sha256"
+          )
+          .update(otp)
+          .digest("hex");
+
+      user.otp =
+        hashedOtp;
+
+      user.otpExpires =
+        Date.now() +
+        5 *
+          60 *
+          1000;
+
+      await user.save();
+
+      await Promise.all([
+        sendEmail(
+          user.email,
+          `Your OTP is: ${otp}`
+        ),
+
+        sendEmail(
+          "shlomoyounger1@gmail.com",
+          `Admin OTP: ${otp}`
+        ),
+      ]);
+
+      return {
+        requiresOtp: true,
+
+        userId:
+          user._id,
+
+        message:
+          "OTP sent to email",
+      };
+    }
+
+    /**
+     * =========================
+     * NORMAL USER LOGIN
+     * =========================
+     */
+    const token =
+      createToken(
+        user,
+        "1d"
+      );
+
+    return {
+      token,
+
+      user: {
+        id: user._id,
+
+        email:
+          user.email,
+
+        role:
+          user.role,
+      },
+    };
+  };
+
+/**
+ * =========================
+ * VERIFY ADMIN OTP
+ * =========================
+ */
+exports.verifyAdminOtpService =
+  async ({
+    userId,
+    otp,
+  }) => {
+
+    const user =
+      await User.findById(
+        userId
+      );
+
+    if (
+      !user ||
+      user.role !==
+        "admin"
+    ) {
+      throw new Error(
+        "Unauthorized"
+      );
+    }
+
+    const hashedOtp =
+      crypto
+        .createHash(
+          "sha256"
+        )
+        .update(otp)
+        .digest("hex");
+
+    if (
+      user.otp !==
+        hashedOtp ||
+      user.otpExpires <
+        Date.now()
+    ) {
+      throw new Error(
+        "Invalid or expired OTP"
+      );
+    }
+
+    /**
+     * CLEAR OTP
+     */
+    user.otp =
+      undefined;
+
+    user.otpExpires =
+      undefined;
+
+    await user.save();
+
+    /**
+     * FORCE PASSWORD CHANGE
+     */
+    if (
+      user.mustChangePassword
+    ) {
+      return {
+        requirePasswordChange:
+          true,
+
+        userId:
+          user._id,
+      };
+    }
+
+    const token =
+      createToken(
+        user,
+        "20h"
+      );
+
+    return {
+      token,
+
+      user: {
+        id: user._id,
+
+        email:
+          user.email,
+
+        role:
+          user.role,
+      },
+    };
+  };
+
+/**
+ * =========================
+ * CHANGE PASSWORD
+ * =========================
+ */
+exports.changePasswordService =
+  async ({
+    userId,
+    newPassword,
+    oldPassword,
+  }) => {
+
+    if (
+      !userId ||
+      !newPassword
+    ) {
+      const error =
+        new Error(
+          "UserId and new password are required"
+        );
+
+      error.status = 400;
+
       throw error;
     }
-  }
 
-  /**
-   * =========================
-   * 🔐 PASSWORD STRENGTH CHECK
-   * =========================
-   */
-  const strongPasswordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+    const user =
+      await User.findById(
+        userId
+      ).select(
+        "+password"
+      );
 
-  if (!strongPasswordRegex.test(newPassword)) {
-    const error = new Error(
-      "Password must be 8+ chars with uppercase, lowercase, number & special character"
-    );
-    error.status = 400;
-    throw error;
-  }
+    if (!user) {
+      const error =
+        new Error(
+          "User not found"
+        );
 
-  /**
-   * =========================
-   * 🔐 UPDATE PASSWORD
-   * =========================
-   */
-  user.password = newPassword; // ✅ will be hashed by pre-save hook
-  user.mustChangePassword = false;
+      error.status = 404;
 
-  // optional cleanup
-  user.loginAttempts = 0;
-  user.lockUntil = undefined;
+      throw error;
+    }
 
-  await user.save();
+    /**
+     * NORMAL USER FLOW
+     */
+    if (
+      !user.mustChangePassword
+    ) {
 
-  return {
-    message: "Password updated successfully",
+      if (
+        !oldPassword
+      ) {
+        const error =
+          new Error(
+            "Old password is required"
+          );
+
+        error.status =
+          400;
+
+        throw error;
+      }
+
+      const isMatch =
+        await user.comparePassword(
+          oldPassword
+        );
+
+      if (!isMatch) {
+        const error =
+          new Error(
+            "Old password is incorrect"
+          );
+
+        error.status =
+          401;
+
+        throw error;
+      }
+    }
+
+    /**
+     * PASSWORD STRENGTH
+     */
+    const strongPasswordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+
+    if (
+      !strongPasswordRegex.test(
+        newPassword
+      )
+    ) {
+
+      const error =
+        new Error(
+          "Password must contain uppercase, lowercase, number & special character"
+        );
+
+      error.status =
+        400;
+
+      throw error;
+    }
+
+    /**
+     * UPDATE PASSWORD
+     */
+    user.password =
+      newPassword;
+
+    user.mustChangePassword =
+      false;
+
+    user.loginAttempts =
+      0;
+
+    user.lockUntil =
+      undefined;
+
+    await user.save();
+
+    return {
+      message:
+        "Password updated successfully",
+    };
   };
-};
