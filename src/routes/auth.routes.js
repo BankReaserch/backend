@@ -1,19 +1,89 @@
-const express = require("express");
-const router = express.Router();
-const {authenticate}= require("../middleware/auth.middleware")
+// routes/auth.routes.js
 
-const authController = require("../controllers/auth.controller");
+const express =
+  require("express");
 
-router.post("/register", authController.register);
-router.post("/login", authController.login);
-router.get("/verify-email", authController.verifyEmail);
-router.get("/me",authenticate,authController.getMe);
+const router =
+  express.Router();
 
-router.post("/logout",authController.logout);
-// 👑 admin
-router.post("/verify-otp", authController.verifyAdminOtp);
+const {
+  authenticate,
+} = require(
+  "../middleware/auth.middleware"
+);
 
-// 🔐 password
-router.post("/change-password", authController.changePassword);
+const authController =
+  require(
+    "../controllers/auth.controller"
+  );
 
-module.exports = router;
+/*
+========================================
+AUTH
+========================================
+*/
+
+router.post(
+  "/register",
+  authController.register
+);
+
+router.post(
+  "/login",
+  authController.login
+);
+
+router.post(
+  "/logout",
+  authenticate,
+  authController.logout
+);
+
+/*
+========================================
+EMAIL
+========================================
+*/
+
+router.get(
+  "/verify-email",
+  authController.verifyEmail
+);
+
+/*
+========================================
+USER
+========================================
+*/
+
+router.get(
+  "/me",
+  authenticate,
+  authController.getMe
+);
+
+/*
+========================================
+ADMIN
+========================================
+*/
+
+router.post(
+  "/verify-otp",
+  authController.verifyAdminOtp
+);
+
+/*
+========================================
+PASSWORD
+========================================
+*/
+
+router.post(
+  "/change-password",
+  authenticate,
+  authController.changePassword
+);
+
+module.exports =
+  router;

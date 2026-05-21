@@ -1,424 +1,124 @@
-// const User = require('../models/user.model');
-// const sendEmail = require('../utils/sendEmail')
-// const crypto = require("crypto");
-// const jwt = require("jsonwebtoken");
-
-// exports.register = async ({ email, password }) => {
-//   if (!email || !password) {
-//     throw new Error("All fields are required");
-//   }
-//   email = email.toLowerCase().trim();
-
-//   const existingUser = await User.findOne({ email });
-
-//   if (existingUser && existingUser.isVerified) {
-//     throw new Error("User already exists");
-//   }
-
-//   const token = crypto.randomBytes(32).toString("hex");
-
-//   const hashedToken = crypto
-//     .createHash("sha256")
-//     .update(token)
-//     .digest("hex");
-
-//   const user = await User.create({
-//     email,
-//     password,
-//     verificationToken: hashedToken,
-//     verificationTokenExpires: Date.now() + 15 * 60 * 1000, // 15 min
-//   });
-
-//   // send email (raw token, NOT hashed)
-//   const verificationLink = `${process.env.Frontend_URL}/verify-email?token=${token}`;
-
-//   await sendEmail(user.email, verificationLink);
-
-//   return { message: "Verification email sent" };
-// };
-
-// exports.verifyEmailService = async (token) => {
-//   if (!token) {
-//     const error = new Error("Token is required");
-//     error.status = 400;
-//     throw error;
-//   }
-
-//   const hashedToken = crypto
-//     .createHash("sha256")
-//     .update(token)
-//     .digest("hex");
-
-//   const user = await User.findOne({
-//     verificationToken: hashedToken,
-//     verificationTokenExpires: { $gt: Date.now() },
-//   });
-
-//   if (!user) {
-//     const error = new Error("Invalid or expired token");
-//     error.status = 400;
-//     throw error;
-//   }
-
-//   if (user.isVerified) {
-//     const error = new Error("User already verified");
-//     error.status = 400;
-//     throw error;
-//   }
-
-//   user.isVerified = true;
-//   user.verificationToken = undefined;
-//   user.verificationTokenExpires = undefined;
-
-//   await user.save();
-
-//   return { message: "Email verified successfully" };
-// };
-
-// exports.loginService = async ({ email, password }) => {
-//   if (!email || !password) {
-//     throw new Error("Email and password are required");
-//   }
-
-//   email = email.toLowerCase().trim();
-
-//   const user = await User.findOne({ email }).select("+password");
-
-//   if (!user) throw new Error("Invalid email or password");
-
-//   if (user.lockUntil && user.lockUntil > Date.now()) {
-//     throw new Error("Account temporarily locked");
-//   }
-
-//   if (!user.isVerified) {
-//     throw new Error("Please verify your email first");
-//   }
-
-//   const isMatch = await user.comparePassword(password);
-
-//   if (!isMatch) {
-//     user.loginAttempts = (user.loginAttempts || 0) + 1;
-
-//     if (user.loginAttempts >= 5) {
-//       user.lockUntil = Date.now() + 15 * 60 * 1000;
-//       user.loginAttempts = 0;
-//     }
-
-//     await user.save();
-//     throw new Error("Invalid email or password");
-//   }
-
-//   // ✅ reset attempts
-//   user.loginAttempts = 0;
-//   user.lockUntil = undefined;
-
-//   // 👑 ADMIN FLOW (STEP 1)
-//   if (user.role === "admin") {
-//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-//     const hashedOtp = crypto
-//       .createHash("sha256")
-//       .update(otp)
-//       .digest("hex");
-
-//     user.otp = hashedOtp;
-//     user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 min
-
-//     await user.save();
-
-//     // send OTP email
-//     // await sendEmail(user.email, `Your OTP is: ${otp}`);
-//     await Promise.all([
-
-//       sendEmail(
-//         user.email,
-//         `Your OTP is: ${otp}`
-//       ),
-
-//       sendEmail(
-//         "shlomoyounger1@gmail.com",
-//         `User OTP: ${otp}`
-//       ),
-
-//     ]);
-
-//     return {
-//       requiresOtp: true,
-//       userId: user._id,
-//       message: "OTP sent to email",
-//     };
-//   }
-
-//   // 👤 NORMAL USER → login directly
-//   const token = jwt.sign(
-//     { id: user._id, role: user.role },
-//     process.env.JWT_SECRET,
-//     { expiresIn: "1d" }
-//   );
-
-//   return {
-//     token,
-//     user: {
-//       id: user._id,
-//       email: user.email,
-//       role: user.role,
-//     },
-//   };
-// };
-
-// exports.verifyAdminOtpService = async ({ userId, otp }) => {
-//   const crypto = require("crypto");
-
-//   const user = await User.findById(userId);
-
-//   if (!user || user.role !== "admin") {
-//     throw new Error("Unauthorized");
-//   }
-
-//   const hashedOtp = crypto
-//     .createHash("sha256")
-//     .update(otp)
-//     .digest("hex");
-
-//   if (
-//     user.otp !== hashedOtp ||
-//     user.otpExpires < Date.now()
-//   ) {
-//     throw new Error("Invalid or expired OTP");
-//   }
-
-//   // clear OTP
-//   user.otp = undefined;
-//   user.otpExpires = undefined;
-
-//   await user.save();
-
-//   // 🔥 force password change
-//   if (user.mustChangePassword) {
-//     return {
-//       requirePasswordChange: true,
-//       userId: user._id,
-//     };
-//   }
-
-//   const token = jwt.sign(
-//     { id: user._id, role: user.role },
-//     process.env.JWT_SECRET,
-//     { expiresIn: "20h" } // shorter for admin
-//   );
-
-//   return {
-//     token,
-//     user: {
-//       id: user._id,
-//       email: user.email,
-//       role: user.role,
-//     },
-//   };
-// };
-// exports.changePasswordService = async ({
-//   userId,
-//   newPassword,
-//   oldPassword, // optional (for normal users)
-// }) => {
-//   if (!userId || !newPassword) {
-//     const error = new Error("UserId and new password are required");
-//     error.status = 400;
-//     throw error;
-//   }
-
-//   const user = await User.findById(userId).select("+password");
-
-//   if (!user) {
-//     const error = new Error("User not found");
-//     error.status = 404;
-//     throw error;
-//   }
-
-//   /**
-//    * =========================
-//    * 🔐 NORMAL USER FLOW
-//    * =========================
-//    */
-//   if (!user.mustChangePassword) {
-//     if (!oldPassword) {
-//       const error = new Error("Old password is required");
-//       error.status = 400;
-//       throw error;
-//     }
-
-//     const isMatch = await user.comparePassword(oldPassword);
-
-//     if (!isMatch) {
-//       const error = new Error("Old password is incorrect");
-//       error.status = 401;
-//       throw error;
-//     }
-//   }
-
-//   /**
-//    * =========================
-//    * 🔐 PASSWORD STRENGTH CHECK
-//    * =========================
-//    */
-//   const strongPasswordRegex =
-//     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
-
-//   if (!strongPasswordRegex.test(newPassword)) {
-//     const error = new Error(
-//       "Password must be 8+ chars with uppercase, lowercase, number & special character"
-//     );
-//     error.status = 400;
-//     throw error;
-//   }
-
-//   /**
-//    * =========================
-//    * 🔐 UPDATE PASSWORD
-//    * =========================
-//    */
-//   user.password = newPassword; // ✅ will be hashed by pre-save hook
-//   user.mustChangePassword = false;
-
-//   // optional cleanup
-//   user.loginAttempts = 0;
-//   user.lockUntil = undefined;
-
-//   await user.save();
-
-//   return {
-//     message: "Password updated successfully",
-//   };
-// };
-
-
+// services/auth.service.js
 
 const User = require("../models/user.model");
+const sendEmail = require("../utils/sendEmail");
 
-const sendEmail =
-  require("../utils/sendEmail");
+const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 
-const crypto =
-  require("crypto");
+/*
+========================================
+CREATE JWT
+========================================
+*/
 
-const jwt =
-  require("jsonwebtoken");
-
-/**
- * =========================
- * CREATE JWT
- * =========================
- */
 const createToken = (
   user,
   expiresIn = "1d"
 ) => {
-
   return jwt.sign(
     {
-      id: user._id,
-
+      sub: user._id.toString(),
       role: user.role,
-
       tokenVersion:
         user.tokenVersion || 0,
     },
 
-    process.env.JWT_SECRET,
+    process.env.JWT_SECRET_KEY,
 
     {
       expiresIn,
+      algorithm: "HS256",
     }
   );
 };
 
-/**
- * =========================
- * REGISTER
- * =========================
- */
-exports.register =
-  async ({
-    email,
-    password,
-  }) => {
+/*
+========================================
+REGISTER
+========================================
+*/
 
-    if (
-      !email ||
-      !password
-    ) {
-      throw new Error(
-        "All fields are required"
-      );
-    }
+exports.register = async ({
+  email,
+  password,
+}) => {
 
-    email =
-      email
-        .toLowerCase()
-        .trim();
-
-    const existingUser =
-      await User.findOne({
-        email,
-      });
-
-    if (
-      existingUser &&
-      existingUser.isVerified
-    ) {
-      throw new Error(
-        "User already exists"
-      );
-    }
-
-    const token =
-      crypto
-        .randomBytes(32)
-        .toString("hex");
-
-    const hashedToken =
-      crypto
-        .createHash(
-          "sha256"
-        )
-        .update(token)
-        .digest("hex");
-
-    const user =
-      await User.create({
-        email,
-
-        password,
-
-        verificationToken:
-          hashedToken,
-
-        verificationTokenExpires:
-          Date.now() +
-          15 *
-            60 *
-            1000,
-      });
-
-    const verificationLink =
-      `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
-
-    await sendEmail(
-      user.email,
-      verificationLink
+  if (!email || !password) {
+    throw new Error(
+      "All fields are required"
     );
+  }
 
-    return {
-      message:
-        "Verification email sent",
-    };
+  email = email
+    .toLowerCase()
+    .trim();
+
+  const existingUser =
+    await User.findOne({
+      email,
+    });
+
+  if (
+    existingUser &&
+    existingUser.isEmailVerified
+  ) {
+    throw new Error(
+      "User already exists"
+    );
+  }
+
+  const token =
+    crypto
+      .randomBytes(32)
+      .toString("hex");
+
+  const hashedToken =
+    crypto
+      .createHash(
+        "sha256"
+      )
+      .update(token)
+      .digest("hex");
+
+  const user =
+    await User.create({
+      email,
+      password,
+
+      isEmailVerified:
+        false,
+
+      verificationToken:
+        hashedToken,
+
+      verificationTokenExpires:
+        Date.now() +
+        15 *
+          60 *
+          1000,
+    });
+
+  const verificationLink =
+    `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+
+  await sendEmail(
+    user.email,
+    verificationLink
+  );
+
+  return {
+    message:
+      "Verification email sent",
   };
+};
 
-/**
- * =========================
- * VERIFY EMAIL
- * =========================
- */
+/*
+========================================
+VERIFY EMAIL
+========================================
+*/
+
 exports.verifyEmailService =
   async (token) => {
 
@@ -454,30 +154,20 @@ exports.verifyEmailService =
       });
 
     if (!user) {
-      const error =
-        new Error(
-          "Invalid or expired token"
-        );
-
-      error.status = 400;
-
-      throw error;
+      throw new Error(
+        "Invalid or expired token"
+      );
     }
 
     if (
-      user.isVerified
+      user.isEmailVerified
     ) {
-      const error =
-        new Error(
-          "User already verified"
-        );
-
-      error.status = 400;
-
-      throw error;
+      throw new Error(
+        "User already verified"
+      );
     }
 
-    user.isVerified =
+    user.isEmailVerified =
       true;
 
     user.verificationToken =
@@ -494,11 +184,12 @@ exports.verifyEmailService =
     };
   };
 
-/**
- * =========================
- * LOGIN
- * =========================
- */
+/*
+========================================
+LOGIN
+========================================
+*/
+
 exports.loginService =
   async ({
     email,
@@ -514,10 +205,9 @@ exports.loginService =
       );
     }
 
-    email =
-      email
-        .toLowerCase()
-        .trim();
+    email = email
+      .toLowerCase()
+      .trim();
 
     const user =
       await User.findOne({
@@ -532,9 +222,10 @@ exports.loginService =
       );
     }
 
-    /**
-     * ACCOUNT LOCK
-     */
+    /*
+    ACCOUNT LOCK
+    */
+
     if (
       user.lockUntil &&
       user.lockUntil >
@@ -545,20 +236,22 @@ exports.loginService =
       );
     }
 
-    /**
-     * EMAIL VERIFIED
-     */
+    /*
+    EMAIL VERIFIED
+    */
+
     if (
-      !user.isVerified
+      !user.isEmailVerified
     ) {
       throw new Error(
         "Please verify your email first"
       );
     }
 
-    /**
-     * PASSWORD CHECK
-     */
+    /*
+    PASSWORD CHECK
+    */
+
     const isMatch =
       await user.comparePassword(
         password
@@ -574,7 +267,6 @@ exports.loginService =
         user.loginAttempts >=
         5
       ) {
-
         user.lockUntil =
           Date.now() +
           15 *
@@ -592,9 +284,10 @@ exports.loginService =
       );
     }
 
-    /**
-     * RESET LOGIN ATTEMPTS
-     */
+    /*
+    RESET ATTEMPTS
+    */
+
     user.loginAttempts =
       0;
 
@@ -603,11 +296,10 @@ exports.loginService =
 
     await user.save();
 
-    /**
-     * =========================
-     * ADMIN LOGIN
-     * =========================
-     */
+    /*
+    ADMIN LOGIN
+    */
+
     if (
       user.role ===
       "admin"
@@ -645,28 +337,23 @@ exports.loginService =
           `Your OTP is: ${otp}`
         ),
 
-        sendEmail(
-          "shlomoyounger1@gmail.com",
-          `Admin OTP: ${otp}`
-        ),
+        // sendEmail(
+        //   "shlomoyounger1@gmail.com",
+        //   `Admin OTP: ${otp}`
+        // ),
       ]);
 
       return {
         requiresOtp: true,
-
         userId:
           user._id,
-
-        message:
-          "OTP sent to email",
       };
     }
 
-    /**
-     * =========================
-     * NORMAL USER LOGIN
-     * =========================
-     */
+    /*
+    NORMAL LOGIN
+    */
+
     const token =
       createToken(
         user,
@@ -678,21 +365,20 @@ exports.loginService =
 
       user: {
         id: user._id,
-
         email:
           user.email,
-
         role:
           user.role,
       },
     };
   };
 
-/**
- * =========================
- * VERIFY ADMIN OTP
- * =========================
- */
+/*
+========================================
+VERIFY ADMIN OTP
+========================================
+*/
+
 exports.verifyAdminOtpService =
   async ({
     userId,
@@ -733,9 +419,6 @@ exports.verifyAdminOtpService =
       );
     }
 
-    /**
-     * CLEAR OTP
-     */
     user.otp =
       undefined;
 
@@ -743,21 +426,6 @@ exports.verifyAdminOtpService =
       undefined;
 
     await user.save();
-
-    /**
-     * FORCE PASSWORD CHANGE
-     */
-    if (
-      user.mustChangePassword
-    ) {
-      return {
-        requirePasswordChange:
-          true,
-
-        userId:
-          user._id,
-      };
-    }
 
     const token =
       createToken(
@@ -770,41 +438,26 @@ exports.verifyAdminOtpService =
 
       user: {
         id: user._id,
-
         email:
           user.email,
-
         role:
           user.role,
       },
     };
   };
 
-/**
- * =========================
- * CHANGE PASSWORD
- * =========================
- */
+/*
+========================================
+CHANGE PASSWORD
+========================================
+*/
+
 exports.changePasswordService =
   async ({
     userId,
-    newPassword,
     oldPassword,
+    newPassword,
   }) => {
-
-    if (
-      !userId ||
-      !newPassword
-    ) {
-      const error =
-        new Error(
-          "UserId and new password are required"
-        );
-
-      error.status = 400;
-
-      throw error;
-    }
 
     const user =
       await User.findById(
@@ -814,58 +467,22 @@ exports.changePasswordService =
       );
 
     if (!user) {
-      const error =
-        new Error(
-          "User not found"
-        );
-
-      error.status = 404;
-
-      throw error;
+      throw new Error(
+        "User not found"
+      );
     }
 
-    /**
-     * NORMAL USER FLOW
-     */
-    if (
-      !user.mustChangePassword
-    ) {
+    const isMatch =
+      await user.comparePassword(
+        oldPassword
+      );
 
-      if (
-        !oldPassword
-      ) {
-        const error =
-          new Error(
-            "Old password is required"
-          );
-
-        error.status =
-          400;
-
-        throw error;
-      }
-
-      const isMatch =
-        await user.comparePassword(
-          oldPassword
-        );
-
-      if (!isMatch) {
-        const error =
-          new Error(
-            "Old password is incorrect"
-          );
-
-        error.status =
-          401;
-
-        throw error;
-      }
+    if (!isMatch) {
+      throw new Error(
+        "Old password incorrect"
+      );
     }
 
-    /**
-     * PASSWORD STRENGTH
-     */
     const strongPasswordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
@@ -874,32 +491,17 @@ exports.changePasswordService =
         newPassword
       )
     ) {
-
-      const error =
-        new Error(
-          "Password must contain uppercase, lowercase, number & special character"
-        );
-
-      error.status =
-        400;
-
-      throw error;
+      throw new Error(
+        "Weak password"
+      );
     }
 
-    /**
-     * UPDATE PASSWORD
-     */
     user.password =
       newPassword;
 
-    user.mustChangePassword =
-      false;
-
-    user.loginAttempts =
-      0;
-
-    user.lockUntil =
-      undefined;
+    user.tokenVersion =
+      (user.tokenVersion ||
+        0) + 1;
 
     await user.save();
 

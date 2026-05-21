@@ -11,7 +11,12 @@ const path = require("path");
 
 const app = express();
 
-// ROUTES
+/*
+========================================
+ROUTES
+========================================
+*/
+
 const authRoutes =
   require("./routes/auth.routes");
 
@@ -21,63 +26,95 @@ const audioRoutes =
 const bookRoutes =
   require("./routes/book.routes");
 
-const orderRoutes = require('./routes/order.routes')
-const qnaRoutes =require("./routes/qna.routes");
+const orderRoutes =
+  require("./routes/order.routes");
 
-// TRUST PROXY
+const qnaRoutes =
+  require("./routes/qna.routes");
+
+/*
+========================================
+TRUST PROXY
+(RENDER / NGINX)
+========================================
+*/
+
 app.set("trust proxy", 1);
 
-// ALLOWED ORIGINS
+/*
+========================================
+ALLOWED ORIGINS
+========================================
+*/
+
 const allowedOrigins = [
   "http://localhost:3000",
 
   "https://ribiswebsitedemo.netlify.app",
 ];
 
-// CORS
-const corsOptions = {
-  origin: function (
-    origin,
-    callback
-  ) {
+/*
+========================================
+CORS
+========================================
+*/
 
-    // POSTMAN / MOBILE / SSR
-    if (!origin) {
-
-      return callback(
-        null,
-        true
-      );
-
-    }
-
-    // ALLOW
-    if (
-      allowedOrigins.includes(
-        origin
-      )
+app.use(
+  cors({
+    origin: function (
+      origin,
+      callback
     ) {
 
+      // POSTMAN / MOBILE / SSR
+      if (!origin) {
+        return callback(
+          null,
+          true
+        );
+      }
+
+      if (
+        allowedOrigins.includes(
+          origin
+        )
+      ) {
+        return callback(
+          null,
+          true
+        );
+      }
+
       return callback(
-        null,
-        true
+        new Error(
+          "CORS not allowed"
+        )
       );
+    },
 
-    }
+    credentials: true,
 
-    // BLOCK
-    return callback(
-      new Error(
-        "CORS not allowed"
-      )
-    );
-  },
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
 
-  credentials: true,
-};
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+    ],
+  })
+);
 
-// MIDDLEWARE
-app.use(cors(corsOptions));
+/*
+========================================
+MIDDLEWARE
+========================================
+*/
 
 app.use(morgan("dev"));
 
@@ -91,10 +128,11 @@ app.use(
   })
 );
 
-// ======================
-// PUBLIC STORAGE
-// ONLY BOOK COVERS
-// ======================
+/*
+========================================
+STATIC FILES
+========================================
+*/
 
 app.use(
   "/storage/covers",
@@ -106,9 +144,11 @@ app.use(
   )
 );
 
-// ======================
-// API ROUTES
-// ======================
+/*
+========================================
+API ROUTES
+========================================
+*/
 
 app.use(
   "/api/auth",
@@ -119,6 +159,7 @@ app.use(
   "/api/audio",
   audioRoutes
 );
+
 app.use(
   "/api/order",
   orderRoutes
@@ -128,26 +169,33 @@ app.use(
   "/api/book",
   bookRoutes
 );
-app.use("/api/qna",qnaRoutes)
 
-// ======================
-// 404 HANDLER
-// ======================
+app.use(
+  "/api/qna",
+  qnaRoutes
+);
+
+/*
+========================================
+404 HANDLER
+========================================
+*/
 
 app.use((req, res) => {
 
   return res.status(404).json({
     success: false,
-
     message:
       "Route not found",
   });
 
 });
 
-// ======================
-// GLOBAL ERROR HANDLER
-// ======================
+/*
+========================================
+GLOBAL ERROR HANDLER
+========================================
+*/
 
 app.use(
   (
@@ -168,7 +216,6 @@ app.use(
       )
       .json({
         success: false,
-
         message:
           error.message ||
           "Internal server error",

@@ -1,69 +1,84 @@
-const express =
-  require("express");
+const express = require("express");
 
-const router =
-  express.Router();
+const router = express.Router();
 
 const {
   authenticate,
-  isAdmin,
 } = require(
   "../middleware/auth.middleware"
 );
 
-const {
-  placeOrderController,
-  getAllOrdersController,
-  getUserOrdersController,
-  cancelUserOrderController,
-  updateOrderStatusController,
-  deleteOrderController,
-} = require(
-  "../controllers/order.controller"
-);
+const authController =
+  require(
+    "../controllers/auth.controller"
+  );
 
-// PLACE ORDER
+/*
+========================================
+AUTH
+========================================
+*/
+
 router.post(
-  "/place",
-  authenticate,
-  placeOrderController
+  "/register",
+  authController.register
 );
 
-// USER ORDERS
+router.post(
+  "/login",
+  authController.login
+);
+
+router.post(
+  "/logout",
+  authenticate, // ✅ IMPORTANT
+  authController.logout
+);
+
+/*
+========================================
+EMAIL
+========================================
+*/
+
 router.get(
-  "/my-orders",
-  authenticate,
-  getUserOrdersController
+  "/verify-email",
+  authController.verifyEmail
 );
 
-// USER CANCEL ORDER
-router.patch(
-  "/cancel/:id",
-  authenticate,
-  cancelUserOrderController
-);
+/*
+========================================
+USER
+========================================
+*/
 
-// ADMIN GET ALL
 router.get(
-  "/all",
+  "/me",
   authenticate,
-  isAdmin,
-  getAllOrdersController
-);
-// UPDATE STATUS
-router.patch(
-  "/update-status/:id",
-  authenticate,
-  isAdmin,
-  updateOrderStatusController
+  authController.getMe
 );
 
-// DELETE ORDER
-router.delete(
-  "/:id",
-  authenticate,
-  isAdmin,
-  deleteOrderController
+/*
+========================================
+ADMIN
+========================================
+*/
+
+router.post(
+  "/verify-otp",
+  authController.verifyAdminOtp
+);
+
+/*
+========================================
+PASSWORD
+========================================
+*/
+
+router.post(
+  "/change-password",
+  authenticate, // ✅ IMPORTANT
+  authController.changePassword
 );
 
 module.exports = router;
