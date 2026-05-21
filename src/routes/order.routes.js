@@ -15,6 +15,7 @@ const {
   placeOrderController,
   getAllOrdersController,
   getUserOrdersController,
+  cancelUserOrderController,
   updateOrderStatusController,
   deleteOrderController,
 } = require(
@@ -33,6 +34,13 @@ router.get(
   "/my-orders",
   authenticate,
   getUserOrdersController
+);
+
+// USER CANCEL ORDER
+router.patch(
+  "/cancel/:id",
+  authenticate,
+  cancelUserOrderController
 );
 
 // ADMIN GET ALL

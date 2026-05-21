@@ -2,6 +2,7 @@ const {
   placeOrderService,
   getAllOrdersService,
   getUserOrdersService,
+  cancelUserOrderService,
   deleteOrderService,
   updateOrderStatusService,
 } = require(
@@ -125,7 +126,31 @@ exports.updateOrderStatusController =
 
     }
   };
+// USER CANCEL ORDER
+exports.cancelUserOrderController =
+  async (req, res, next) => {
 
+    try {
+
+      const order =
+        await cancelUserOrderService(
+          req.params.id,
+          req.user.id
+        );
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Order cancelled successfully",
+        data: order,
+      });
+
+    } catch (error) {
+
+      next(error);
+
+    }
+  };
 // DELETE ORDER
 exports.deleteOrderController =
   async (req, res) => {

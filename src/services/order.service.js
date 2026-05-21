@@ -171,7 +171,57 @@ exports.updateOrderStatusService =
 
     return order;
   };
+// USER CANCEL ORDER
+exports.cancelUserOrderService =
+  async (
+    orderId,
+    userId
+  ) => {
 
+    const order =
+      await Order.findOne({
+        _id: orderId,
+        user: userId,
+      });
+
+    if (!order) {
+
+      throw new Error(
+        "Order not found"
+      );
+    }
+
+    // BLOCK AFTER SHIPPING
+    if (
+      order.status ===
+        "shipped" ||
+      order.status ===
+        "delivered"
+    ) {
+
+      throw new Error(
+        "Order can no longer be cancelled"
+      );
+    }
+
+    // ALREADY CANCELLED
+    if (
+      order.status ===
+      "cancelled"
+    ) {
+
+      throw new Error(
+        "Order already cancelled"
+      );
+    }
+
+    order.status =
+      "cancelled";
+
+    await order.save();
+
+    return order;
+  };
 // DELETE ORDER
 exports.deleteOrderService =
   async (req) => {
