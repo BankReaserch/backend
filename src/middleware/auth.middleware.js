@@ -10,8 +10,6 @@ exports.authenticate = async (req, res, next) => {
     const user = await User.findById(decoded.id)
       .select("role tokenVersion isActive")
       .lean();
-    console.log(user,"useruseruser");
-    
     if (!user || user.tokenVersion !== decoded.tokenVersion) {
       return res.status(401).json({ message: "Unauthorized" });
     }
