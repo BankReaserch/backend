@@ -3,6 +3,7 @@ const {
   getAllOrdersService,
   getUserOrdersService,
   deleteOrderService,
+  updateOrderStatusService,
 } = require(
   "../services/order.service"
 );
@@ -91,6 +92,36 @@ exports.getUserOrdersController =
         message:
           error.message,
       });
+
+    }
+  };
+  // UPDATE ORDER STATUS
+exports.updateOrderStatusController =
+  async (req, res, next) => {
+
+    try {
+
+      const { id } = req.params;
+
+      const { status } =
+        req.body;
+
+      const order =
+        await updateOrderStatusService(
+          id,
+          status
+        );
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Order status updated",
+        data: order,
+      });
+
+    } catch (error) {
+
+      next(error);
 
     }
   };

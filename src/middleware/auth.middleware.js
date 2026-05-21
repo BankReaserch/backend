@@ -23,7 +23,7 @@ exports.authenticate = async (req, res, next) => {
       });
     }
     req.user = {
-      id: decoded.sub,
+      id: decoded.id,
       role: user.role
     };
     

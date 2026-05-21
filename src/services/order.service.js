@@ -125,6 +125,53 @@ exports.getUserOrdersService =
     return orders;
   };
 
+  // UPDATE ORDER STATUS
+exports.updateOrderStatusService =
+  async (
+    orderId,
+    status
+  ) => {
+
+    const allowedStatuses = [
+      "pending",
+      "processing",
+      "shipped",
+      "delivered",
+      "cancelled",
+    ];
+
+    if (
+      !allowedStatuses.includes(
+        status
+      )
+    ) {
+
+      throw new Error(
+        "Invalid order status"
+      );
+    }
+
+    const order =
+      await Order.findByIdAndUpdate(
+        orderId,
+        {
+          status,
+        },
+        {
+          new: true,
+        }
+      );
+
+    if (!order) {
+
+      throw new Error(
+        "Order not found"
+      );
+    }
+
+    return order;
+  };
+
 // DELETE ORDER
 exports.deleteOrderService =
   async (req) => {

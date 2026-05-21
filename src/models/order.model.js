@@ -44,19 +44,19 @@ const orderSchema =
 
         required: true,
       },
+status: {
+  type: String,
 
-      status: {
-        type: String,
+  enum: [
+    "pending",
+    "processing",
+    "shipped",
+    "delivered",
+    "cancelled",
+  ],
 
-        enum: [
-          "pending",
-          "paid",
-          "cancelled",
-          "completed",
-        ],
-
-        default: "pending",
-      },
+  default: "pending",
+},
 
       paymentMethod: {
         type: String,

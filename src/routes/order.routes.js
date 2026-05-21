@@ -15,6 +15,7 @@ const {
   placeOrderController,
   getAllOrdersController,
   getUserOrdersController,
+  updateOrderStatusController,
   deleteOrderController,
 } = require(
   "../controllers/order.controller"
@@ -40,6 +41,13 @@ router.get(
   authenticate,
   isAdmin,
   getAllOrdersController
+);
+// UPDATE STATUS
+router.patch(
+  "/update-status/:id",
+  authenticate,
+  isAdmin,
+  updateOrderStatusController
 );
 
 // DELETE ORDER
