@@ -31,6 +31,7 @@ const orderRoutes =
 
 const qnaRoutes =
   require("./routes/qna.routes");
+const userRoutes = require('./routes/user.routes')
 
 /*
 ========================================
@@ -174,7 +175,10 @@ app.use(
   "/api/qna",
   qnaRoutes
 );
-
+app.use(
+  "/api/users",
+  userRoutes
+);
 /*
 ========================================
 404 HANDLER

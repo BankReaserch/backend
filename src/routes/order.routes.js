@@ -1,49 +1,27 @@
-const express = require("express");
+// routes/order.routes.js
 
-const router = express.Router();
+const express =
+  require("express");
+
+const router =
+  express.Router();
 
 const {
   authenticate,
+  isAdmin,
 } = require(
   "../middleware/auth.middleware"
 );
 
-const authController =
-  require(
-    "../controllers/auth.controller"
-  );
-
-/*
-========================================
-AUTH
-========================================
-*/
-
-router.post(
-  "/register",
-  authController.register
-);
-
-router.post(
-  "/login",
-  authController.login
-);
-
-router.post(
-  "/logout",
-  authenticate, // ✅ IMPORTANT
-  authController.logout
-);
-
-/*
-========================================
-EMAIL
-========================================
-*/
-
-router.get(
-  "/verify-email",
-  authController.verifyEmail
+const {
+  placeOrderController,
+  getAllOrdersController,
+  getUserOrdersController,
+  cancelUserOrderController,
+  deleteOrderController,
+  updateOrderStatusController,
+} = require(
+  "../controllers/order.controller"
 );
 
 /*
@@ -52,10 +30,25 @@ USER
 ========================================
 */
 
-router.get(
-  "/me",
+// PLACE ORDER
+router.post(
+  "/place",
   authenticate,
-  authController.getMe
+  placeOrderController
+);
+
+// USER ORDERS
+router.get(
+  "/my-orders",
+  authenticate,
+  getUserOrdersController
+);
+
+// USER CANCEL ORDER
+router.patch(
+  "/cancel/:id",
+  authenticate,
+  cancelUserOrderController
 );
 
 /*
@@ -64,21 +57,29 @@ ADMIN
 ========================================
 */
 
-router.post(
-  "/verify-otp",
-  authController.verifyAdminOtp
+// GET ALL ORDERS
+router.get(
+  "/all",
+  authenticate,
+  isAdmin,
+  getAllOrdersController
 );
 
-/*
-========================================
-PASSWORD
-========================================
-*/
-
-router.post(
-  "/change-password",
-  authenticate, // ✅ IMPORTANT
-  authController.changePassword
+// UPDATE ORDER STATUS
+router.patch(
+  "/status/:id",
+  authenticate,
+  isAdmin,
+  updateOrderStatusController
 );
 
-module.exports = router;
+// DELETE ORDER
+router.delete(
+  "/delete/:id",
+  authenticate,
+  isAdmin,
+  deleteOrderController
+);
+
+module.exports =
+  router;
