@@ -38,6 +38,11 @@ const bankRoutes =
   );
 
 const planRoutes=require('./routes/plan.routes')
+const articleRoutes =
+  require(
+    "./routes/article.routes"
+  );
+
 
 
 /*
@@ -161,6 +166,7 @@ app.use(
     )
   )
 );
+
 /*
 ========================================
 API ROUTES
@@ -205,6 +211,10 @@ app.use(
   planRoutes
 );
 
+app.use(
+  "/api/articles",
+  articleRoutes
+);
 
 /*
 ========================================
