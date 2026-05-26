@@ -32,6 +32,13 @@ const orderRoutes =
 const qnaRoutes =
   require("./routes/qna.routes");
 const userRoutes = require('./routes/user.routes')
+const bankRoutes =
+  require(
+    "./routes/bank.routes"
+  );
+
+const planRoutes=require('./routes/plan.routes')
+
 
 /*
 ========================================
@@ -145,6 +152,15 @@ app.use(
   )
 );
 
+app.use(
+  "/uploads",
+  express.static(
+    path.join(
+      __dirname,
+      "uploads"
+    )
+  )
+);
 /*
 ========================================
 API ROUTES
@@ -179,6 +195,17 @@ app.use(
   "/api/users",
   userRoutes
 );
+
+app.use(
+  "/api/banks",
+  bankRoutes
+);
+app.use(
+  "/api/plan",
+  planRoutes
+);
+
+
 /*
 ========================================
 404 HANDLER
