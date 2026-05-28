@@ -43,6 +43,16 @@ const articleRoutes =
     "./routes/article.routes"
   );
 
+const alertRoutes =
+  require(
+    "./routes/alert.routes"
+  );
+const dashboardRoutes =
+  require(
+    "./routes/dashboard.routes"
+  );
+
+
 
 
 /*
@@ -216,6 +226,14 @@ app.use(
   articleRoutes
 );
 
+app.use(
+  "/api/alerts",
+  alertRoutes
+);
+app.use(
+  "/api/dashboard",
+  dashboardRoutes
+);
 /*
 ========================================
 404 HANDLER
