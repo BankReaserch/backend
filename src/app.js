@@ -51,9 +51,10 @@ const dashboardRoutes =
   require(
     "./routes/dashboard.routes"
   );
-
-
-
+  const brokerRoutes =
+  require(
+    "./routes/broker.routes"
+  );
 
 /*
 ========================================
@@ -233,6 +234,10 @@ app.use(
 app.use(
   "/api/dashboard",
   dashboardRoutes
+);
+app.use(
+  "/api/brokers",
+  brokerRoutes
 );
 /*
 ========================================
