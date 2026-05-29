@@ -55,6 +55,10 @@ const dashboardRoutes =
   require(
     "./routes/broker.routes"
   );
+  const contactRoutes =
+  require(
+    "./routes/contact.routes"
+  );
 
 /*
 ========================================
@@ -238,6 +242,10 @@ app.use(
 app.use(
   "/api/brokers",
   brokerRoutes
+);
+app.use(
+  "/api/contact",
+  contactRoutes
 );
 /*
 ========================================
