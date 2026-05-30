@@ -20,10 +20,37 @@ exports.createBankService =
 
     const bank =
       await Bank.create({
-        ...body,
+        name:
+          body.name,
+
+        type:
+          body.type,
+
+        location:
+          body.location,
+
+        status:
+          body.status,
+
+        website:
+          body.website,
+
+        assets:
+          body.assets,
+
+        founded:
+          body.founded,
+
+        lastReviewed:
+          body.lastReviewed ||
+          null,
+
+        publicInfo:
+          body.publicInfo,
 
         reportUrl:
-          file?.path || "",
+          file?.filename ||
+          "",
 
         reportAvailable:
           !!file,
@@ -37,6 +64,73 @@ exports.createBankService =
 
 /*
 ========================================
+UPDATE BANK
+========================================
+*/
+
+exports.updateBankService =
+  async (
+    id,
+    body,
+    file
+  ) => {
+
+    const bank =
+      await Bank.findById(
+        id
+      );
+
+    if (!bank) {
+
+      throw new Error(
+        "Bank not found"
+      );
+    }
+
+    bank.name =
+      body.name;
+
+    bank.type =
+      body.type;
+
+    bank.location =
+      body.location;
+
+    bank.status =
+      body.status;
+
+    bank.website =
+      body.website;
+
+    bank.assets =
+      body.assets;
+
+    bank.founded =
+      body.founded;
+
+    bank.lastReviewed =
+      body.lastReviewed ||
+      null;
+
+    bank.publicInfo =
+      body.publicInfo;
+
+    if (file) {
+
+      bank.reportUrl =
+        file.filename;
+
+      bank.reportAvailable =
+        true;
+    }
+
+    await bank.save();
+
+    return bank;
+  };
+
+/*
+========================================
 GET ALL BANKS
 ========================================
 */
@@ -44,13 +138,11 @@ GET ALL BANKS
 exports.getAllBanksService =
   async () => {
 
-    const banks =
-      await Bank.find()
-        .sort({
-          createdAt: -1,
-        });
+    return await Bank.find()
+      .sort({
+        createdAt: -1,
+      });
 
-    return banks;
   };
 
 /*

@@ -1,7 +1,13 @@
 // controllers/bank.controller.js
+const path =
+  require("path");
+
+const fs =
+  require("fs");
 
 const {
   createBankService,
+  updateBankService,
   getAllBanksService,
   getSingleBankService,
   deleteBankService,
@@ -157,6 +163,173 @@ exports.deleteBankController =
 
           message:
             "Bank deleted",
+        });
+
+    } catch (error) {
+
+      return res
+        .status(500)
+        .json({
+          success: false,
+
+          message:
+            error.message,
+        });
+    }
+  };
+
+  exports.viewBankReportController =
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const bank =
+        await getSingleBankService(
+          req.params.id
+        );
+
+      if (
+        !bank.reportUrl
+      ) {
+
+        return res.status(404)
+          .json({
+            success: false,
+            message:
+              "Report not found",
+          });
+      }
+
+      const filePath =
+        path.join(
+          __dirname,
+          "../uploads/reports",
+          bank.reportUrl
+        );
+
+      if (
+        !fs.existsSync(
+          filePath
+        )
+      ) {
+
+        return res.status(404)
+          .json({
+            success: false,
+            message:
+              "File not found",
+          });
+      }
+
+      res.sendFile(
+        filePath
+      );
+
+    } catch (error) {
+
+      return res.status(500)
+        .json({
+          success: false,
+          message:
+            error.message,
+        });
+    }
+  };
+
+  exports.downloadBankReportController =
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const bank =
+        await getSingleBankService(
+          req.params.id
+        );
+
+      if (
+        !bank.reportUrl
+      ) {
+
+        return res.status(404)
+          .json({
+            success: false,
+            message:
+              "Report not found",
+          });
+      }
+
+      const filePath =
+        path.join(
+          __dirname,
+          "../uploads/reports",
+          bank.reportUrl
+        );
+
+      if (
+        !fs.existsSync(
+          filePath
+        )
+      ) {
+
+        return res.status(404)
+          .json({
+            success: false,
+            message:
+              "File not found",
+          });
+      }
+
+      res.download(
+        filePath
+      );
+
+    } catch (error) {
+
+      return res.status(500)
+        .json({
+          success: false,
+          message:
+            error.message,
+        });
+    }
+  };
+
+  /*
+========================================
+UPDATE BANK
+========================================
+*/
+
+exports.updateBankController =
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const bank =
+        await updateBankService(
+          req.params.id,
+          req.body,
+          req.file
+        );
+
+      return res
+        .status(200)
+        .json({
+          success: true,
+
+          message:
+            "Bank updated successfully",
+
+          data: bank,
         });
 
     } catch (error) {

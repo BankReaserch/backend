@@ -20,9 +20,12 @@ const upload =
 
 const {
   createBankController,
+  updateBankController,
   getAllBanksController,
   getSingleBankController,
   deleteBankController,
+  downloadBankReportController,
+  viewBankReportController,
 } = require(
   "../controllers/bank.controller"
 );
@@ -70,5 +73,26 @@ router.delete(
   deleteBankController
 );
 
+router.get(
+  "/view-report/:id",
+  authenticate,
+  viewBankReportController
+);
+
+router.get(
+  "/download-report/:id",
+  authenticate,
+  downloadBankReportController
+);
+
+router.put(
+  "/update/:id",
+  authenticate,
+  isAdmin,
+  upload.single(
+    "report"
+  ),
+  updateBankController
+);
 module.exports =
   router;
