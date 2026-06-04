@@ -1,5 +1,3 @@
-// services/plan.service.js
-
 const stripe =
   require(
     "../config/stripe"
@@ -10,77 +8,103 @@ const PlanPurchase =
     "../models/planPurchase.model"
   );
 
-/*
-========================================
-CREATE CHECKOUT SESSION
-========================================
-*/
-
 exports.createCheckoutSessionService =
   async (
-    req
+    req,
+    billingType
   ) => {
 
     const userId =
       req.user.id;
 
-    /*
-    ========================================
-    CREATE STRIPE SESSION
-    ========================================
-    */
+    let session;
 
-    const session =
-      await stripe.checkout.sessions.create(
-        {
-          payment_method_types:
-            ["card"],
+    if (
+      billingType ===
+      "subscription"
+    ) {
 
-          mode:
-            "payment",
+      session =
+        await stripe.checkout.sessions.create(
+          {
+            mode:
+              "subscription",
 
-          customer_email:
-            req.user.email,
+            customer_email:
+              req.user.email,
 
-          line_items: [
-            {
-              price_data:
-                {
-                  currency:
-                    "usd",
+            line_items: [
+              {
+                price:
+                  process.env
+                    .STRIPE_MONTHLY_PRICE_ID,
 
-                  product_data:
-                    {
-                      name:
-                        "Unlimited Premium Access",
+                quantity: 1,
+              },
+            ],
 
-                      description:
-                        "Unlimited access to all premium research reports",
-                    },
+            success_url:
+              `${process.env.CLIENT_URL}/plan/success?session_id={CHECKOUT_SESSION_ID}`,
 
-                  unit_amount:
-                    3000,
-                },
+            cancel_url:
+              `${process.env.CLIENT_URL}/plan`,
 
-              quantity: 1,
+            metadata: {
+              userId,
+              billingType,
             },
-          ],
+          }
+        );
 
-          success_url: `${process.env.CLIENT_URL}/plan/success?session_id={CHECKOUT_SESSION_ID}`,
+    } else {
 
-          cancel_url: `${process.env.CLIENT_URL}/plan`,
+      session =
+        await stripe.checkout.sessions.create(
+          {
+            payment_method_types:
+              ["card"],
 
-          metadata: {
-            userId,
-          },
-        }
-      );
+            mode:
+              "payment",
 
-    /*
-    ========================================
-    SAVE PURCHASE
-    ========================================
-    */
+            customer_email:
+              req.user.email,
+
+            line_items: [
+              {
+                price_data:
+                  {
+                    currency:
+                      "usd",
+
+                    product_data:
+                      {
+                        name:
+                          "Premium Membership",
+                      },
+
+                    unit_amount:
+                      5000,
+                  },
+
+                quantity: 1,
+              },
+            ],
+
+            success_url:
+              `${process.env.CLIENT_URL}/plan/success?session_id={CHECKOUT_SESSION_ID}`,
+
+            cancel_url:
+              `${process.env.CLIENT_URL}/plan`,
+
+            metadata: {
+              userId,
+              billingType,
+            },
+          }
+        );
+
+    }
 
     await PlanPurchase.create(
       {
@@ -89,21 +113,17 @@ exports.createCheckoutSessionService =
         stripeSessionId:
           session.id,
 
-        amount: 30,
+        amount: 50,
 
         status:
           "pending",
+
+        billingType,
       }
     );
 
     return session;
   };
-
-/*
-========================================
-VERIFY PAYMENT
-========================================
-*/
 
 exports.verifyPaymentService =
   async (
@@ -112,7 +132,12 @@ exports.verifyPaymentService =
 
     const session =
       await stripe.checkout.sessions.retrieve(
-        sessionId
+        sessionId,
+        {
+          expand: [
+            "subscription",
+          ],
+        }
       );
 
     if (
@@ -123,6 +148,7 @@ exports.verifyPaymentService =
       throw new Error(
         "Payment not completed"
       );
+
     }
 
     const purchase =
@@ -138,6 +164,7 @@ exports.verifyPaymentService =
       throw new Error(
         "Purchase not found"
       );
+
     }
 
     purchase.status =
@@ -149,7 +176,86 @@ exports.verifyPaymentService =
     purchase.stripePaymentIntentId =
       session.payment_intent;
 
+    if (
+      purchase.billingType ===
+      "subscription"
+    ) {
+
+      purchase.stripeSubscriptionId =
+        session.subscription?.id ||
+        session.subscription;
+
+      purchase.expiresAt =
+        null;
+
+    } else {
+
+      const expiresAt =
+        new Date();
+
+      expiresAt.setDate(
+        expiresAt.getDate() +
+          30
+      );
+
+      purchase.expiresAt =
+        expiresAt;
+
+    }
+
     await purchase.save();
 
     return purchase;
+  };
+
+exports.getPlanStatusService =
+  async (
+    userId
+  ) => {
+
+    const plan =
+      await PlanPurchase
+        .findOne({
+          user: userId,
+
+          status:
+            "paid",
+        })
+        .sort({
+          createdAt: -1,
+        });
+
+    if (!plan) {
+
+      return {
+        active: false,
+      };
+
+    }
+
+    if (
+      plan.billingType ===
+      "one-time"
+    ) {
+
+      if (
+        plan.expiresAt &&
+        plan.expiresAt <
+          new Date()
+      ) {
+
+        plan.active =
+          false;
+
+        await plan.save();
+
+        return {
+          active: false,
+        };
+
+      }
+
+    }
+
+    return plan;
   };

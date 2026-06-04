@@ -1,17 +1,10 @@
-// controllers/plan.controller.js
-
 const {
   createCheckoutSessionService,
   verifyPaymentService,
+  getPlanStatusService,
 } = require(
   "../services/plan.service"
 );
-
-/*
-========================================
-CREATE STRIPE CHECKOUT
-========================================
-*/
 
 exports.createCheckoutSession =
   async (
@@ -22,32 +15,28 @@ exports.createCheckoutSession =
 
     try {
 
+      const {
+        billingType,
+      } = req.body;
+
       const session =
         await createCheckoutSessionService(
-          req
+          req,
+          billingType
         );
 
-      return res
-        .status(200)
-        .json({
-          success: true,
-
-          url:
-            session.url,
-        });
+      return res.json({
+        success: true,
+        url: session.url,
+      });
 
     } catch (error) {
 
       next(error);
 
     }
-  };
 
-/*
-========================================
-VERIFY PAYMENT
-========================================
-*/
+  };
 
 exports.verifyPayment =
   async (
@@ -67,20 +56,42 @@ exports.verifyPayment =
           session_id
         );
 
-      return res
-        .status(200)
-        .json({
-          success: true,
-
-          message:
-            "Plan activated",
-
-          data: result,
-        });
+      return res.json({
+        success: true,
+        data: result,
+      });
 
     } catch (error) {
 
       next(error);
 
     }
+
+  };
+
+exports.getPlanStatus =
+  async (
+    req,
+    res,
+    next
+  ) => {
+
+    try {
+
+      const plan =
+        await getPlanStatusService(
+          req.user.id
+        );
+
+      return res.json({
+        success: true,
+        data: plan,
+      });
+
+    } catch (error) {
+
+      next(error);
+
+    }
+
   };

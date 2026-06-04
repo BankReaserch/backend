@@ -1,5 +1,3 @@
-// routes/plan.routes.js
-
 const express =
   require("express");
 
@@ -17,12 +15,6 @@ const planController =
     "../controllers/plan.controller"
   );
 
-/*
-========================================
-PLAN
-========================================
-*/
-
 router.post(
   "/checkout",
   authenticate,
@@ -33,6 +25,12 @@ router.get(
   "/verify",
   authenticate,
   planController.verifyPayment
+);
+
+router.get(
+  "/status",
+  authenticate,
+  planController.getPlanStatus
 );
 
 module.exports =
