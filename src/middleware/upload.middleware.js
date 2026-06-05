@@ -1,5 +1,3 @@
-// middleware/upload.middleware.js
-
 const multer =
   require("multer");
 
@@ -9,21 +7,40 @@ const path =
 const fs =
   require("fs");
 
-const uploadPath =
+const reportPath =
   path.join(
     __dirname,
     "../uploads/reports"
   );
 
-// ✅ CREATE FOLDER IF NOT EXISTS
+const bankImagePath =
+  path.join(
+    __dirname,
+    "../uploads/bank-images"
+  );
+
 if (
   !fs.existsSync(
-    uploadPath
+    reportPath
   )
 ) {
 
   fs.mkdirSync(
-    uploadPath,
+    reportPath,
+    {
+      recursive: true,
+    }
+  );
+}
+
+if (
+  !fs.existsSync(
+    bankImagePath
+  )
+) {
+
+  fs.mkdirSync(
+    bankImagePath,
     {
       recursive: true,
     }
@@ -39,9 +56,20 @@ const storage =
         cb
       ) => {
 
+        if (
+          file.fieldname ===
+          "coverImage"
+        ) {
+
+          return cb(
+            null,
+            bankImagePath
+          );
+        }
+
         cb(
           null,
-          uploadPath
+          reportPath
         );
       },
 
@@ -54,18 +82,67 @@ const storage =
 
         cb(
           null,
-          Date.now() +
-            path.extname(
-              file.originalname
-            )
+          `${Date.now()}-${Math.round(
+            Math.random() * 1e9
+          )}${path.extname(
+            file.originalname
+          )}`
         );
       },
   });
 
-const upload =
-  multer({
-    storage,
-  });
+const fileFilter =
+  (
+    req,
+    file,
+    cb
+  ) => {
+
+    if (
+      file.fieldname ===
+      "report"
+    ) {
+
+      if (
+        file.mimetype !==
+        "application/pdf"
+      ) {
+
+        return cb(
+          new Error(
+            "Only PDF files are allowed"
+          )
+        );
+      }
+    }
+
+    if (
+      file.fieldname ===
+      "coverImage"
+    ) {
+
+      if (
+        !file.mimetype.startsWith(
+          "image/"
+        )
+      ) {
+
+        return cb(
+          new Error(
+            "Only image files are allowed"
+          )
+        );
+      }
+    }
+
+    cb(
+      null,
+      true
+    );
+  };
 
 module.exports =
-  upload;
+  multer({
+    storage,
+    fileFilter,
+  });

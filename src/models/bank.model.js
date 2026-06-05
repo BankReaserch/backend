@@ -69,7 +69,9 @@ const bankSchema =
         type: Boolean,
         default: false,
       },
-
+      coverImage: {
+        type: String,
+      },
       createdBy: {
         type:
           mongoose.Schema.Types.ObjectId,

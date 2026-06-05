@@ -54,14 +54,20 @@ ADMIN
 ========================================
 */
 
-// CREATE BANK
 router.post(
   "/create",
   authenticate,
   isAdmin,
-  upload.single(
-    "report"
-  ),
+  upload.fields([
+    {
+      name: "report",
+      maxCount: 1,
+    },
+    {
+      name: "coverImage",
+      maxCount: 1,
+    },
+  ]),
   createBankController
 );
 
@@ -89,9 +95,16 @@ router.put(
   "/update/:id",
   authenticate,
   isAdmin,
-  upload.single(
-    "report"
-  ),
+  upload.fields([
+    {
+      name: "report",
+      maxCount: 1,
+    },
+    {
+      name: "coverImage",
+      maxCount: 1,
+    },
+  ]),
   updateBankController
 );
 module.exports =

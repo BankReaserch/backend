@@ -1,22 +1,22 @@
-// services/bank.service.js
-
 const Bank =
   require(
     "../models/bank.model"
   );
 
-/*
-========================================
-CREATE BANK
-========================================
-*/
+
 
 exports.createBankService =
   async (
     body,
-    file,
+    files,
     userId
   ) => {
+
+    const reportFile =
+      files?.report?.[0];
+
+    const coverImage =
+      files?.coverImage?.[0];
 
     const bank =
       await Bank.create({
@@ -49,11 +49,15 @@ exports.createBankService =
           body.publicInfo,
 
         reportUrl:
-          file?.filename ||
-          "",
+          reportFile
+            ?.filename || "",
 
         reportAvailable:
-          !!file,
+          !!reportFile,
+
+        coverImage:
+          coverImage
+            ?.filename || "",
 
         createdBy:
           userId,
@@ -62,17 +66,11 @@ exports.createBankService =
     return bank;
   };
 
-/*
-========================================
-UPDATE BANK
-========================================
-*/
-
 exports.updateBankService =
   async (
     id,
     body,
-    file
+    files
   ) => {
 
     const bank =
@@ -86,6 +84,12 @@ exports.updateBankService =
         "Bank not found"
       );
     }
+
+    const reportFile =
+      files?.report?.[0];
+
+    const coverImage =
+      files?.coverImage?.[0];
 
     bank.name =
       body.name;
@@ -115,25 +119,29 @@ exports.updateBankService =
     bank.publicInfo =
       body.publicInfo;
 
-    if (file) {
+    if (
+      reportFile
+    ) {
 
       bank.reportUrl =
-        file.filename;
+        reportFile.filename;
 
       bank.reportAvailable =
         true;
+    }
+
+    if (
+      coverImage
+    ) {
+
+      bank.coverImage =
+        coverImage.filename;
     }
 
     await bank.save();
 
     return bank;
   };
-
-/*
-========================================
-GET ALL BANKS
-========================================
-*/
 
 exports.getAllBanksService =
   async () => {
@@ -144,12 +152,6 @@ exports.getAllBanksService =
       });
 
   };
-
-/*
-========================================
-GET SINGLE BANK
-========================================
-*/
 
 exports.getSingleBankService =
   async (id) => {
@@ -169,11 +171,55 @@ exports.getSingleBankService =
     return bank;
   };
 
-/*
-========================================
-DELETE BANK
-========================================
-*/
+exports.deleteBankService =
+  async (id) => {
+
+    const bank =
+      await Bank.findById(
+        id
+      );
+
+    if (!bank) {
+
+      throw new Error(
+        "Bank not found"
+      );
+    }
+
+    await Bank.findByIdAndDelete(
+      id
+    );
+
+    return true;
+  };
+
+exports.getAllBanksService =
+  async () => {
+
+    return await Bank.find()
+      .sort({
+        createdAt: -1,
+      });
+
+  };
+
+exports.getSingleBankService =
+  async (id) => {
+
+    const bank =
+      await Bank.findById(
+        id
+      );
+
+    if (!bank) {
+
+      throw new Error(
+        "Bank not found"
+      );
+    }
+
+    return bank;
+  };
 
 exports.deleteBankService =
   async (id) => {

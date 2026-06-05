@@ -15,16 +15,12 @@ const {
   "../services/bank.service"
 );
 
-/*
-========================================
-CREATE BANK
-========================================
-*/
 
 exports.createBankController =
   async (
     req,
-    res
+    res,
+    next
   ) => {
 
     try {
@@ -32,7 +28,7 @@ exports.createBankController =
       const bank =
         await createBankService(
           req.body,
-          req.file,
+          req.files,
           req.user.id
         );
 
@@ -40,31 +36,16 @@ exports.createBankController =
         .status(201)
         .json({
           success: true,
-
-          message:
-            "Bank created successfully",
-
           data: bank,
         });
 
     } catch (error) {
 
-      return res
-        .status(500)
-        .json({
-          success: false,
+      next(error);
 
-          message:
-            error.message,
-        });
     }
-  };
 
-/*
-========================================
-GET ALL BANKS
-========================================
-*/
+  };
 
 exports.getAllBanksController =
   async (
@@ -97,12 +78,6 @@ exports.getAllBanksController =
         });
     }
   };
-
-/*
-========================================
-GET SINGLE BANK
-========================================
-*/
 
 exports.getSingleBankController =
   async (
@@ -138,11 +113,6 @@ exports.getSingleBankController =
     }
   };
 
-/*
-========================================
-DELETE BANK
-========================================
-*/
 
 exports.deleteBankController =
   async (
@@ -300,16 +270,11 @@ exports.deleteBankController =
     }
   };
 
-  /*
-========================================
-UPDATE BANK
-========================================
-*/
-
 exports.updateBankController =
   async (
     req,
-    res
+    res,
+    next
   ) => {
 
     try {
@@ -318,29 +283,20 @@ exports.updateBankController =
         await updateBankService(
           req.params.id,
           req.body,
-          req.file
+          req.files
         );
 
       return res
         .status(200)
         .json({
           success: true,
-
-          message:
-            "Bank updated successfully",
-
           data: bank,
         });
 
     } catch (error) {
 
-      return res
-        .status(500)
-        .json({
-          success: false,
+      next(error);
 
-          message:
-            error.message,
-        });
     }
+
   };

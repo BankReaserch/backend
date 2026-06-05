@@ -21,9 +21,9 @@ const planPurchaseSchema =
       },
 
       stripePaymentIntentId:
-        {
-          type: String,
-        },
+      {
+        type: String,
+      },
 
       amount: {
         type: Number,
@@ -55,13 +55,28 @@ const planPurchaseSchema =
 
         default: true,
       },
+      billingType: {
+        type: String,
+        enum: [
+          "one-time",
+          "subscription"
+        ]
+      },
 
+      stripeSubscriptionId: {
+        type: String
+      },
+
+      expiresAt: {
+        type: Date
+      },
       active: {
         type: Boolean,
 
         default: false,
       },
     },
+
     {
       timestamps: true,
     }
