@@ -1,98 +1,117 @@
-const QNA = require(
-  "../models/qna.model"
-);
+const QNA = require("../models/qna.model");
 
-// ADD
-exports.addQNAService =
-  async (req) => {
+exports.addQNAService = async (req) => {
+  const {
+    category,
+    priority,
+    question,
+    answer,
+    isPublished,
+  } = req.body;
 
-    const {
+  if (!category) {
+    throw new Error("Category required");
+  }
+
+  if (!question) {
+    throw new Error("Question required");
+  }
+
+  if (!answer) {
+    throw new Error("Answer required");
+  }
+
+  const priorityNumber =
+    Number(priority) || 1;
+
+  const existing =
+    await QNA.findOne({
       category,
-      priority,
+      priority: priorityNumber,
+    });
+
+  if (existing) {
+    throw new Error(
+      "Priority already exists in this category"
+    );
+  }
+
+  const newQNA =
+    await QNA.create({
+      category,
+      priority: priorityNumber,
       question,
       answer,
-      isPublished,
-    } = req.body;
+      isPublished:
+        isPublished !== false &&
+        isPublished !== "false",
+    });
 
-    if (!category) {
-      throw new Error(
-        "Category required"
+  return await QNA.findById(
+    newQNA._id
+  ).populate(
+    "category",
+    "name priority"
+  );
+};
+
+exports.getQNAService = async (req) => {
+  const {
+    search,
+    category,
+    published,
+  } = req.query;
+
+  const filter = {};
+
+  if (search) {
+    filter.$text = {
+      $search: search,
+    };
+  }
+
+  if (
+    category &&
+    category !== "all"
+  ) {
+    filter.category =
+      category;
+  }
+
+  if (
+    published !== undefined
+  ) {
+    filter.isPublished =
+      published === "true";
+  }
+
+  const qna =
+    await QNA.find(filter)
+      .populate(
+        "category",
+        "name priority"
       );
-    }
 
-    if (!question) {
-      throw new Error(
-        "Question required"
-      );
-    }
+  qna.sort((a, b) => {
+    const categorySort =
+      a.category.priority -
+      b.category.priority;
 
-    if (!answer) {
-      throw new Error(
-        "Answer required"
-      );
-    }
-
-    const newQNA =
-      await QNA.create({
-        category,
-
-        priority:
-          Number(
-            priority
-          ) || 1,
-
-        question,
-
-        answer,
-
-        isPublished:
-          isPublished !==
-          "false",
-      });
-
-    return newQNA;
-  };
-
-// GET ALL
-exports.getQNAService =
-  async (req) => {
-
-    const {
-      search,
-      category,
-    } = req.query;
-
-    let filter = {};
-
-    // SEARCH
-    if (search) {
-
-      filter.$text = {
-        $search: search,
-      };
-    }
-
-    // CATEGORY
     if (
-      category &&
-      category !== "all"
+      categorySort !== 0
     ) {
-
-      filter.category =
-        category;
+      return categorySort;
     }
 
-    const qna =
-      await QNA.find(filter)
-        .sort({
-          priority: 1,
-          createdAt: -1,
-        });
+    return (
+      a.priority -
+      b.priority
+    );
+  });
 
-    return qna;
-  };
+  return qna;
+};
 
-// GET SINGLE
 exports.getSingleQNAService =
   async (req) => {
 
@@ -100,10 +119,13 @@ exports.getSingleQNAService =
       req.params;
 
     const qna =
-      await QNA.findById(id);
+      await QNA.findById(id)
+        .populate(
+          "category",
+          "name priority"
+        );
 
     if (!qna) {
-
       throw new Error(
         "Q&A not found"
       );
@@ -112,7 +134,6 @@ exports.getSingleQNAService =
     return qna;
   };
 
-// UPDATE
 exports.updateQNAService =
   async (req) => {
 
@@ -123,33 +144,73 @@ exports.updateQNAService =
       await QNA.findById(id);
 
     if (!existing) {
-
       throw new Error(
         "Q&A not found"
       );
     }
 
-    const updated =
-      await QNA.findByIdAndUpdate(
-        id,
-        {
-          ...req.body,
+    const category =
+      req.body.category ||
+      existing.category;
 
-          priority:
-            Number(
-              req.body
-                .priority
-            ) || 1,
+    const priority =
+      Number(
+        req.body.priority
+      ) ||
+      existing.priority;
+
+    const duplicate =
+      await QNA.findOne({
+        category,
+        priority,
+        _id: {
+          $ne: id,
         },
-        {
-          new: true,
-        }
-      );
+      });
 
-    return updated;
+    if (duplicate) {
+      throw new Error(
+        "Priority already exists in this category"
+      );
+    }
+
+    existing.category =
+      category;
+
+    existing.priority =
+      priority;
+
+    existing.question =
+      req.body.question ??
+      existing.question;
+
+    existing.answer =
+      req.body.answer ??
+      existing.answer;
+
+    if (
+      req.body.isPublished !==
+      undefined
+    ) {
+      existing.isPublished =
+        req.body
+          .isPublished ===
+          true ||
+        req.body
+          .isPublished ===
+          "true";
+    }
+
+    await existing.save();
+
+    return await QNA.findById(
+      existing._id
+    ).populate(
+      "category",
+      "name priority"
+    );
   };
 
-// DELETE
 exports.deleteQNAService =
   async (req) => {
 
@@ -160,7 +221,6 @@ exports.deleteQNAService =
       await QNA.findById(id);
 
     if (!existing) {
-
       throw new Error(
         "Q&A not found"
       );

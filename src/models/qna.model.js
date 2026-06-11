@@ -4,9 +4,10 @@ const qnaSchema =
   new mongoose.Schema(
     {
       category: {
-        type: String,
+        type:
+          mongoose.Schema.Types.ObjectId,
+        ref: "QNACategory",
         required: true,
-        trim: true,
       },
 
       priority: {
@@ -38,11 +39,19 @@ const qnaSchema =
   );
 
 qnaSchema.index({
-  category: "text",
   question: "text",
   answer: "text",
 });
 
+qnaSchema.index(
+  {
+    category: 1,
+    priority: 1,
+  },
+  {
+    unique: true,
+  }
+);
 module.exports =
   mongoose.model(
     "QNA",
