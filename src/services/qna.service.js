@@ -1,116 +1,205 @@
-const QNA = require("../models/qna.model");
+const QNA =
+  require(
+    "../models/qna.model"
+  );
 
-exports.addQNAService = async (req) => {
-  const {
-    category,
-    priority,
-    question,
-    answer,
-    isPublished,
-  } = req.body;
+exports.addQNAService =
+  async (req) => {
 
-  if (!category) {
-    throw new Error("Category required");
-  }
-
-  if (!question) {
-    throw new Error("Question required");
-  }
-
-  if (!answer) {
-    throw new Error("Answer required");
-  }
-
-  const priorityNumber =
-    Number(priority) || 1;
-
-  const existing =
-    await QNA.findOne({
+    const {
       category,
-      priority: priorityNumber,
-    });
-
-  if (existing) {
-    throw new Error(
-      "Priority already exists in this category"
-    );
-  }
-
-  const newQNA =
-    await QNA.create({
-      category,
-      priority: priorityNumber,
+      categoryPriority,
+      priority,
       question,
       answer,
-      isPublished:
-        isPublished !== false &&
-        isPublished !== "false",
-    });
+      isPublished,
+    } = req.body;
 
-  return await QNA.findById(
-    newQNA._id
-  ).populate(
-    "category",
-    "name priority"
-  );
-};
+    if (!category?.trim()) {
 
-exports.getQNAService = async (req) => {
-  const {
-    search,
-    category,
-    published,
-  } = req.query;
-
-  const filter = {};
-
-  if (search) {
-    filter.$text = {
-      $search: search,
-    };
-  }
-
-  if (
-    category &&
-    category !== "all"
-  ) {
-    filter.category =
-      category;
-  }
-
-  if (
-    published !== undefined
-  ) {
-    filter.isPublished =
-      published === "true";
-  }
-
-  const qna =
-    await QNA.find(filter)
-      .populate(
-        "category",
-        "name priority"
+      throw new Error(
+        "Category required"
       );
 
-  qna.sort((a, b) => {
-    const categorySort =
-      a.category.priority -
-      b.category.priority;
-
-    if (
-      categorySort !== 0
-    ) {
-      return categorySort;
     }
 
-    return (
-      a.priority -
-      b.priority
-    );
-  });
+    if (!question?.trim()) {
 
-  return qna;
-};
+      throw new Error(
+        "Question required"
+      );
+
+    }
+
+    if (!answer?.trim()) {
+
+      throw new Error(
+        "Answer required"
+      );
+
+    }
+
+    const categoryName =
+      category.trim();
+
+    const categoryPriorityNumber =
+      Number(
+        categoryPriority
+      );
+
+    const questionPriority =
+      Number(priority);
+
+    const existingCategory =
+      await QNA.findOne({
+        category:
+          categoryName,
+      });
+
+    if (
+      existingCategory &&
+      existingCategory.categoryPriority !==
+        categoryPriorityNumber
+    ) {
+
+      throw new Error(
+        `Category "${categoryName}" already uses priority ${existingCategory.categoryPriority}`
+      );
+
+    }
+
+    const priorityUsed =
+      await QNA.findOne({
+        category: {
+          $ne:
+            categoryName,
+        },
+
+        categoryPriority:
+          categoryPriorityNumber,
+      });
+
+    if (
+      priorityUsed
+    ) {
+
+      throw new Error(
+        `Category priority ${categoryPriorityNumber} already belongs to "${priorityUsed.category}"`
+      );
+
+    }
+
+    const duplicatePriority =
+      await QNA.findOne({
+        category:
+          categoryName,
+
+        priority:
+          questionPriority,
+      });
+
+    if (
+      duplicatePriority
+    ) {
+
+      throw new Error(
+        "Question priority already exists in this category"
+      );
+
+    }
+
+    const duplicateQuestion =
+      await QNA.findOne({
+        category:
+          categoryName,
+
+        question:
+          question.trim(),
+      });
+
+    if (
+      duplicateQuestion
+    ) {
+
+      throw new Error(
+        "Question already exists in this category"
+      );
+
+    }
+
+    return await QNA.create({
+      category:
+        categoryName,
+
+      categoryPriority:
+        categoryPriorityNumber,
+
+      priority:
+        questionPriority,
+
+      question:
+        question.trim(),
+
+      answer:
+        answer.trim(),
+
+      isPublished:
+        isPublished !==
+          false &&
+        isPublished !==
+          "false",
+    });
+
+  };
+
+exports.getQNAService =
+  async (req) => {
+
+    const {
+      search,
+      category,
+      published,
+    } = req.query;
+
+    const filter = {};
+
+    if (search) {
+
+      filter.$text = {
+        $search: search,
+      };
+
+    }
+
+    if (
+      category &&
+      category !== "all"
+    ) {
+
+      filter.category =
+        category;
+
+    }
+
+    if (
+      published !==
+      undefined
+    ) {
+
+      filter.isPublished =
+        published ===
+        "true";
+
+    }
+
+    return await QNA.find(
+      filter
+    ).sort({
+      categoryPriority: 1,
+      priority: 1,
+    });
+
+  };
 
 exports.getSingleQNAService =
   async (req) => {
@@ -119,19 +208,20 @@ exports.getSingleQNAService =
       req.params;
 
     const qna =
-      await QNA.findById(id)
-        .populate(
-          "category",
-          "name priority"
-        );
+      await QNA.findById(
+        id
+      );
 
     if (!qna) {
+
       throw new Error(
         "Q&A not found"
       );
+
     }
 
     return qna;
+
   };
 
 exports.updateQNAService =
@@ -141,57 +231,162 @@ exports.updateQNAService =
       req.params;
 
     const existing =
-      await QNA.findById(id);
+      await QNA.findById(
+        id
+      );
 
     if (!existing) {
+
       throw new Error(
         "Q&A not found"
       );
+
     }
 
-    const category =
-      req.body.category ||
-      existing.category;
+    const categoryName =
+      (
+        req.body.category ||
+        existing.category
+      ).trim();
 
-    const priority =
+    const categoryPriorityNumber =
       Number(
-        req.body.priority
-      ) ||
-      existing.priority;
+        req.body
+          .categoryPriority ??
+          existing.categoryPriority
+      );
 
-    const duplicate =
+    const questionPriority =
+      Number(
+        req.body.priority ??
+          existing.priority
+      );
+
+    const question =
+      (
+        req.body.question ||
+        existing.question
+      ).trim();
+
+    const answer =
+      (
+        req.body.answer ||
+        existing.answer
+      ).trim();
+
+    const sameCategory =
       await QNA.findOne({
-        category,
-        priority,
+        category:
+          categoryName,
+
         _id: {
           $ne: id,
         },
       });
 
-    if (duplicate) {
+    if (
+      sameCategory &&
+      sameCategory.categoryPriority !==
+        categoryPriorityNumber
+    ) {
+
       throw new Error(
-        "Priority already exists in this category"
+        `Category "${categoryName}" already uses priority ${sameCategory.categoryPriority}`
       );
+
+    }
+
+    const priorityUsed =
+      await QNA.findOne({
+        category: {
+          $ne:
+            categoryName,
+        },
+
+        categoryPriority:
+          categoryPriorityNumber,
+
+        _id: {
+          $ne: id,
+        },
+      });
+
+    if (
+      priorityUsed
+    ) {
+
+      throw new Error(
+        `Category priority ${categoryPriorityNumber} already belongs to "${priorityUsed.category}"`
+      );
+
+    }
+
+    const duplicatePriority =
+      await QNA.findOne({
+        category:
+          categoryName,
+
+        priority:
+          questionPriority,
+
+        _id: {
+          $ne: id,
+        },
+      });
+
+    if (
+      duplicatePriority
+    ) {
+
+      throw new Error(
+        "Question priority already exists in this category"
+      );
+
+    }
+
+    const duplicateQuestion =
+      await QNA.findOne({
+        category:
+          categoryName,
+
+        question,
+
+        _id: {
+          $ne: id,
+        },
+      });
+
+    if (
+      duplicateQuestion
+    ) {
+
+      throw new Error(
+        "Question already exists in this category"
+      );
+
     }
 
     existing.category =
-      category;
+      categoryName;
+
+    existing.categoryPriority =
+      categoryPriorityNumber;
 
     existing.priority =
-      priority;
+      questionPriority;
 
     existing.question =
-      req.body.question ??
-      existing.question;
+      question;
 
     existing.answer =
-      req.body.answer ??
-      existing.answer;
+      answer;
 
     if (
-      req.body.isPublished !==
+      req.body
+        .isPublished !==
       undefined
     ) {
+
       existing.isPublished =
         req.body
           .isPublished ===
@@ -199,16 +394,13 @@ exports.updateQNAService =
         req.body
           .isPublished ===
           "true";
+
     }
 
     await existing.save();
 
-    return await QNA.findById(
-      existing._id
-    ).populate(
-      "category",
-      "name priority"
-    );
+    return existing;
+
   };
 
 exports.deleteQNAService =
@@ -218,12 +410,16 @@ exports.deleteQNAService =
       req.params;
 
     const existing =
-      await QNA.findById(id);
+      await QNA.findById(
+        id
+      );
 
     if (!existing) {
+
       throw new Error(
         "Q&A not found"
       );
+
     }
 
     await QNA.findByIdAndDelete(
@@ -231,4 +427,5 @@ exports.deleteQNAService =
     );
 
     return true;
+
   };
