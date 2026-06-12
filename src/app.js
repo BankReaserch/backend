@@ -1,12 +1,7 @@
 const express = require("express");
-
 const morgan = require("morgan");
-
 const cors = require("cors");
-
-const cookieParser =
-  require("cookie-parser");
-
+const cookieParser = require("cookie-parser");
 const path = require("path");
 
 const app = express();
@@ -17,57 +12,26 @@ ROUTES
 ========================================
 */
 
-const authRoutes =
-  require("./routes/auth.routes");
+const authRoutes       = require("./routes/auth.routes");
+const audioRoutes      = require("./routes/audio.routes");
+const bookRoutes       = require("./routes/book.routes");
+const orderRoutes      = require("./routes/order.routes");
+const qnaRoutes        = require("./routes/qna.routes");
+const userRoutes       = require("./routes/user.routes");
+const bankRoutes       = require("./routes/bank.routes");
+const planRoutes       = require("./routes/plan.routes");
+const articleRoutes    = require("./routes/article.routes");
+const alertRoutes      = require("./routes/alert.routes");
+const dashboardRoutes  = require("./routes/dashboard.routes");
+const brokerRoutes     = require("./routes/broker.routes");
+const contactRoutes    = require("./routes/contact.routes");
+const investmentRoutes = require("./routes/investment.routes");
 
-const audioRoutes =
-  require("./routes/audio.routes");
-
-const bookRoutes =
-  require("./routes/book.routes");
-
-const orderRoutes =
-  require("./routes/order.routes");
-
-const qnaRoutes =
-  require("./routes/qna.routes");
-const userRoutes = require('./routes/user.routes')
-const bankRoutes =
-  require(
-    "./routes/bank.routes"
-  );
-
-const planRoutes=require('./routes/plan.routes')
-const articleRoutes =
-  require(
-    "./routes/article.routes"
-  );
-
-const alertRoutes =
-  require(
-    "./routes/alert.routes"
-  );
-const dashboardRoutes =
-  require(
-    "./routes/dashboard.routes"
-  );
-  const brokerRoutes =
-  require(
-    "./routes/broker.routes"
-  );
-  const contactRoutes =
-  require(
-    "./routes/contact.routes"
-  );
-const investmentRoutes =
-  require(
-    "./routes/investment.routes"
-  );
+const planController = require("./controllers/plan.controller");
 
 /*
 ========================================
-TRUST PROXY
-(RENDER / NGINX)
+TRUST PROXY (RENDER / NGINX)
 ========================================
 */
 
@@ -81,7 +45,6 @@ ALLOWED ORIGINS
 
 const allowedOrigins = [
   "http://localhost:3000",
-
   "https://ribiswebsitedemo.netlify.app",
 ];
 
@@ -93,72 +56,42 @@ CORS
 
 app.use(
   cors({
-    origin: function (
-      origin,
-      callback
-    ) {
-
-      // POSTMAN / MOBILE / SSR
-      if (!origin) {
-        return callback(
-          null,
-          true
-        );
-      }
-
-      if (
-        allowedOrigins.includes(
-          origin
-        )
-      ) {
-        return callback(
-          null,
-          true
-        );
-      }
-
-      return callback(
-        new Error(
-          "CORS not allowed"
-        )
-      );
+    origin: function (origin, callback) {
+      // Allow Postman / mobile / SSR (no origin header)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("CORS not allowed"));
     },
-
     credentials: true,
-
-    methods: [
-      "GET",
-      "POST",
-      "PUT",
-      "PATCH",
-      "DELETE",
-      "OPTIONS",
-    ],
-
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
 /*
 ========================================
-MIDDLEWARE
+STRIPE WEBHOOK — must be before express.json()
+Stripe sends a raw Buffer; if express.json() runs first the
+HMAC signature check will always fail and every webhook is rejected.
+========================================
+*/
+
+app.post(
+  "/api/plan/webhook",
+  express.raw({ type: "application/json" }),
+  planController.handleStripeWebhook
+);
+
+/*
+========================================
+MIDDLEWARE (runs after the raw webhook route)
 ========================================
 */
 
 app.use(morgan("dev"));
-
 app.use(cookieParser());
-
 app.use(express.json());
-
-app.use(
-  express.urlencoded({
-    extended: true,
-  })
-);
+app.use(express.urlencoded({ extended: true }));
 
 /*
 ========================================
@@ -168,22 +101,12 @@ STATIC FILES
 
 app.use(
   "/storage/covers",
-  express.static(
-    path.join(
-      __dirname,
-      "storage/covers"
-    )
-  )
+  express.static(path.join(__dirname, "storage/covers"))
 );
 
 app.use(
   "/uploads",
-  express.static(
-    path.join(
-      __dirname,
-      "uploads"
-    )
-  )
+  express.static(path.join(__dirname, "uploads"))
 );
 
 /*
@@ -192,69 +115,21 @@ API ROUTES
 ========================================
 */
 
-app.use(
-  "/api/auth",
-  authRoutes
-);
+app.use("/api/auth",        authRoutes);
+app.use("/api/audio",       audioRoutes);
+app.use("/api/order",       orderRoutes);
+app.use("/api/book",        bookRoutes);
+app.use("/api/qna",         qnaRoutes);
+app.use("/api/users",       userRoutes);
+app.use("/api/banks",       bankRoutes);
+app.use("/api/plan",        planRoutes);   // /webhook is already handled above; other plan routes work normally
+app.use("/api/articles",    articleRoutes);
+app.use("/api/alerts",      alertRoutes);
+app.use("/api/dashboard",   dashboardRoutes);
+app.use("/api/brokers",     brokerRoutes);
+app.use("/api/investments",  investmentRoutes);
+app.use("/api/contact",     contactRoutes);
 
-app.use(
-  "/api/audio",
-  audioRoutes
-);
-
-app.use(
-  "/api/order",
-  orderRoutes
-);
-
-app.use(
-  "/api/book",
-  bookRoutes
-);
-
-app.use(
-  "/api/qna",
-  qnaRoutes
-);
-app.use(
-  "/api/users",
-  userRoutes
-);
-
-app.use(
-  "/api/banks",
-  bankRoutes
-);
-app.use(
-  "/api/plan",
-  planRoutes
-);
-
-app.use(
-  "/api/articles",
-  articleRoutes
-);
-
-app.use(
-  "/api/alerts",
-  alertRoutes
-);
-app.use(
-  "/api/dashboard",
-  dashboardRoutes
-);
-app.use(
-  "/api/brokers",
-  brokerRoutes
-);
-app.use(
-  "/api/investments",
-  investmentRoutes
-);
-app.use(
-  "/api/contact",
-  contactRoutes
-);
 /*
 ========================================
 404 HANDLER
@@ -262,13 +137,10 @@ app.use(
 */
 
 app.use((req, res) => {
-
   return res.status(404).json({
     success: false,
-    message:
-      "Route not found",
+    message: "Route not found",
   });
-
 });
 
 /*
@@ -277,31 +149,12 @@ GLOBAL ERROR HANDLER
 ========================================
 */
 
-app.use(
-  (
-    error,
-    req,
-    res,
-    next
-  ) => {
-
-    console.error(
-      "Global Error:",
-      error
-    );
-
-    return res
-      .status(
-        error.status || 500
-      )
-      .json({
-        success: false,
-        message:
-          error.message ||
-          "Internal server error",
-      });
-
-  }
-);
+app.use((error, req, res, next) => {
+  console.error("Global Error:", error);
+  return res.status(error.status || 500).json({
+    success: false,
+    message: error.message || "Internal server error",
+  });
+});
 
 module.exports = app;
