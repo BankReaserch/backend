@@ -70,6 +70,18 @@ const planPurchaseSchema =
       expiresAt: {
         type: Date
       },
+      currentPeriodEnd: {
+        type: Date,
+      },
+
+      cancelAtPeriodEnd: {
+        type: Boolean,
+        default: false,
+      },
+
+      stripeCustomerId: {
+        type: String,
+      },
       active: {
         type: Boolean,
 

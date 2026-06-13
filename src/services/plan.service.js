@@ -6,7 +6,6 @@ const PlanPurchase = require("../models/planPurchase.model");
 exports.createCheckoutSessionService = async (req, billingType) => {
   const userId = req.user.id;
 
-  // Validate billingType early so a bad payload never reaches Stripe
   if (!["subscription", "one-time"].includes(billingType)) {
     throw new Error("Invalid billing type.");
   }
@@ -14,8 +13,6 @@ exports.createCheckoutSessionService = async (req, billingType) => {
   let session;
 
   if (billingType === "subscription") {
-    // Monthly subscription — auto-renews via Stripe Billing.
-    // STRIPE_MONTHLY_PRICE_ID must be a recurring Price object in your Stripe dashboard.
     session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer_email: req.user.email,
@@ -25,9 +22,6 @@ exports.createCheckoutSessionService = async (req, billingType) => {
           quantity: 1,
         },
       ],
-      // Stripe will charge the customer automatically each month.
-      // When a renewal payment succeeds/fails Stripe fires a webhook —
-      // handle `invoice.payment_succeeded` and `invoice.payment_failed` there.
       subscription_data: {
         metadata: { userId },
       },
@@ -35,9 +29,7 @@ exports.createCheckoutSessionService = async (req, billingType) => {
       cancel_url: `${process.env.CLIENT_URL}/plan`,
       metadata: { userId, billingType },
     });
-
   } else {
-    // One-time — expires after 30 days; user must pay again to renew.
     session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -58,7 +50,6 @@ exports.createCheckoutSessionService = async (req, billingType) => {
     });
   }
 
-  // Record a pending purchase immediately so we can match it on verify
   await PlanPurchase.create({
     user: userId,
     stripeSessionId: session.id,
@@ -70,7 +61,7 @@ exports.createCheckoutSessionService = async (req, billingType) => {
   return session;
 };
 
-// ─── Verify Payment (called from /plan/success) ───────────────────────────────
+// ─── Verify Payment ───────────────────────────────────────────────────────────
 
 exports.verifyPaymentService = async (sessionId) => {
   const session = await stripe.checkout.sessions.retrieve(sessionId, {
@@ -92,12 +83,10 @@ exports.verifyPaymentService = async (sessionId) => {
   purchase.stripePaymentIntentId = session.payment_intent;
 
   if (purchase.billingType === "subscription") {
-    // Store the subscription ID so webhooks can find this record later
     purchase.stripeSubscriptionId =
       session.subscription?.id ?? session.subscription;
-    purchase.expiresAt = null; // subscription never expires client-side
+    purchase.expiresAt = null;
   } else {
-    // One-time: expire exactly 30 days from now
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
     purchase.expiresAt = expiresAt;
@@ -108,6 +97,9 @@ exports.verifyPaymentService = async (sessionId) => {
 };
 
 // ─── Get Plan Status ──────────────────────────────────────────────────────────
+// Fetches the latest active purchase and, for subscriptions, hydrates
+// cancelAtPeriodEnd and currentPeriodEnd live from Stripe so the frontend
+// always shows the true cancellation state without relying on a webhook.
 
 exports.getPlanStatusService = async (userId) => {
   const plan = await PlanPurchase.findOne({ user: userId, status: "paid" }).sort({
@@ -123,12 +115,30 @@ exports.getPlanStatusService = async (userId) => {
     return { active: false };
   }
 
+  // For subscriptions, fetch live state from Stripe so cancel/resume is
+  // reflected immediately without waiting for a webhook delivery.
+  if (plan.billingType === "subscription" && plan.stripeSubscriptionId) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(
+        plan.stripeSubscriptionId
+      );
+
+      const planObject = plan.toObject();
+      planObject.cancelAtPeriodEnd = subscription.cancel_at_period_end;
+      planObject.currentPeriodEnd = new Date(
+        subscription.current_period_end * 1000
+      ).toISOString();
+
+      return planObject;
+    } catch {
+      // If Stripe is unreachable, fall back to the database record
+    }
+  }
+
   return plan;
 };
 
-// ─── Webhook Handler (subscription lifecycle) ─────────────────────────────────
-// Wire this up in your routes: router.post("/webhook", express.raw({ type: "application/json" }), ...)
-// This handles Stripe auto-charge events so subscription renewals stay in sync.
+// ─── Stripe Webhook ───────────────────────────────────────────────────────────
 
 exports.handleStripeWebhookService = async (rawBody, signature) => {
   let event;
@@ -144,12 +154,9 @@ exports.handleStripeWebhookService = async (rawBody, signature) => {
   }
 
   switch (event.type) {
-
-    // Subscription renewed successfully — keep plan active
     case "invoice.payment_succeeded": {
       const invoice = event.data.object;
       if (!invoice.subscription) break;
-
       await PlanPurchase.findOneAndUpdate(
         { stripeSubscriptionId: invoice.subscription },
         { status: "paid", active: true },
@@ -158,11 +165,9 @@ exports.handleStripeWebhookService = async (rawBody, signature) => {
       break;
     }
 
-    // Renewal payment failed — deactivate access
     case "invoice.payment_failed": {
       const invoice = event.data.object;
       if (!invoice.subscription) break;
-
       await PlanPurchase.findOneAndUpdate(
         { stripeSubscriptionId: invoice.subscription },
         { status: "failed", active: false },
@@ -171,10 +176,8 @@ exports.handleStripeWebhookService = async (rawBody, signature) => {
       break;
     }
 
-    // Subscription cancelled by user or Stripe — deactivate access
     case "customer.subscription.deleted": {
       const subscription = event.data.object;
-
       await PlanPurchase.findOneAndUpdate(
         { stripeSubscriptionId: subscription.id },
         { active: false },
@@ -184,9 +187,60 @@ exports.handleStripeWebhookService = async (rawBody, signature) => {
     }
 
     default:
-      // Ignore unhandled event types
       break;
   }
 
   return { received: true };
+};
+
+// ─── Billing History ──────────────────────────────────────────────────────────
+
+exports.getBillingHistoryService = async (userId) => {
+  return await PlanPurchase.find({ user: userId, status: "paid" }).sort({
+    createdAt: -1,
+  });
+};
+
+// ─── Cancel Subscription ──────────────────────────────────────────────────────
+
+exports.cancelSubscriptionService = async (userId) => {
+  const plan = await PlanPurchase.findOne({
+    user: userId,
+    active: true,
+    billingType: "subscription",
+  });
+
+  if (!plan) throw new Error("No active subscription found.");
+
+  await stripe.subscriptions.update(plan.stripeSubscriptionId, {
+    cancel_at_period_end: true,
+  });
+
+  return true;
+};
+
+// ─── Resume Subscription ──────────────────────────────────────────────────────
+
+exports.resumeSubscriptionService = async (userId) => {
+  const plan = await PlanPurchase.findOne({
+    user: userId,
+    active: true,
+    billingType: "subscription",
+  });
+
+  if (!plan) throw new Error("No active subscription found.");
+
+  await stripe.subscriptions.update(plan.stripeSubscriptionId, {
+    cancel_at_period_end: false,
+  });
+
+  return true;
+};
+
+// ─── Admin: Get All Subscribers ───────────────────────────────────────────────
+
+exports.getSubscribersService = async () => {
+  return await PlanPurchase.find({ active: true })
+    .populate("user", "name email")
+    .sort({ createdAt: -1 });
 };
