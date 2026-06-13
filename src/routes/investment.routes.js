@@ -10,6 +10,7 @@ const upload =
   );
 
 const {authenticate,isAdmin}= require('../middleware/auth.middleware')
+const requirePlan = require("../middleware/requirePlan.middleware");
 
 const {
   createInvestmentController,
@@ -22,11 +23,6 @@ const {
   "../controllers/investment.controller"
 );
 
-/*
-====================================
-PUBLIC
-====================================
-*/
 
 router.get(
   "/",
@@ -41,6 +37,7 @@ router.get(
 router.get(
   "/download-report/:id",
   authenticate,
+  requirePlan,
   downloadInvestmentReportController
 );
 

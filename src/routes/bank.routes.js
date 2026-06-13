@@ -12,6 +12,7 @@ const {
 } = require(
   "../middleware/auth.middleware"
 );
+const requirePlan = require("../middleware/requirePlan.middleware");
 
 const upload =
   require(
@@ -82,12 +83,14 @@ router.delete(
 router.get(
   "/view-report/:id",
   authenticate,
+  requirePlan,
   viewBankReportController
 );
 
 router.get(
   "/download-report/:id",
   authenticate,
+  requirePlan,
   downloadBankReportController
 );
 

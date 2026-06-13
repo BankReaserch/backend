@@ -8,6 +8,7 @@ const app = require("./src/app");
 
 const PORT = process.env.PORT || 8080;
 
+
 const startServer = async () => {
   try {
     // 1. Connect DB

@@ -6,12 +6,6 @@ const path = require("path");
 
 const app = express();
 
-/*
-========================================
-ROUTES
-========================================
-*/
-
 const authRoutes       = require("./routes/auth.routes");
 const audioRoutes      = require("./routes/audio.routes");
 const bookRoutes       = require("./routes/book.routes");
@@ -26,38 +20,18 @@ const dashboardRoutes  = require("./routes/dashboard.routes");
 const brokerRoutes     = require("./routes/broker.routes");
 const contactRoutes    = require("./routes/contact.routes");
 const investmentRoutes = require("./routes/investment.routes");
-
-const planController = require("./controllers/plan.controller");
-
-/*
-========================================
-TRUST PROXY (RENDER / NGINX)
-========================================
-*/
+const planController   = require("./controllers/plan.controller");
 
 app.set("trust proxy", 1);
-
-/*
-========================================
-ALLOWED ORIGINS
-========================================
-*/
 
 const allowedOrigins = [
   "http://localhost:3000",
   "https://ribiswebsitedemo.netlify.app",
 ];
 
-/*
-========================================
-CORS
-========================================
-*/
-
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow Postman / mobile / SSR (no origin header)
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error("CORS not allowed"));
@@ -68,53 +42,33 @@ app.use(
   })
 );
 
-/*
-========================================
-STRIPE WEBHOOK — must be before express.json()
-Stripe sends a raw Buffer; if express.json() runs first the
-HMAC signature check will always fail and every webhook is rejected.
-========================================
-*/
-
+// ── Stripe webhook — MUST be before express.json() ───────────────────────────
 app.post(
   "/api/plan/webhook",
   express.raw({ type: "application/json" }),
   planController.handleStripeWebhook
 );
 
-/*
-========================================
-MIDDLEWARE (runs after the raw webhook route)
-========================================
-*/
-
+// ── General middleware ────────────────────────────────────────────────────────
 app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/*
-========================================
-STATIC FILES
-========================================
-*/
+// ── Static files ──────────────────────────────────────────────────────────────
+// app.js lives in backend/src/ so __dirname = backend/src
+// storage/ is at backend/storage/ — go up one level with ".."
 
-app.use(
-  "/storage/covers",
-  express.static(path.join(__dirname, "storage/covers"))
-);
+// Cover images — PUBLIC, loaded directly by <img> tags
+app.use("/storage/covers", express.static(path.join(__dirname, "..", "storage", "covers")));
 
-app.use(
-  "/uploads",
-  express.static(path.join(__dirname, "uploads"))
-);
+// uploads (article covers, bank images, etc.)
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
-/*
-========================================
-API ROUTES
-========================================
-*/
+// NOTE: storage/books and storage/reports are intentionally NOT static-served.
+// They are protected and only accessible via authenticated download controllers.
 
+// ── API routes ────────────────────────────────────────────────────────────────
 app.use("/api/auth",        authRoutes);
 app.use("/api/audio",       audioRoutes);
 app.use("/api/order",       orderRoutes);
@@ -122,7 +76,7 @@ app.use("/api/book",        bookRoutes);
 app.use("/api/qna",         qnaRoutes);
 app.use("/api/users",       userRoutes);
 app.use("/api/banks",       bankRoutes);
-app.use("/api/plan",        planRoutes);   // /webhook is already handled above; other plan routes work normally
+app.use("/api/plan",        planRoutes);
 app.use("/api/articles",    articleRoutes);
 app.use("/api/alerts",      alertRoutes);
 app.use("/api/dashboard",   dashboardRoutes);
@@ -130,25 +84,12 @@ app.use("/api/brokers",     brokerRoutes);
 app.use("/api/investments",  investmentRoutes);
 app.use("/api/contact",     contactRoutes);
 
-/*
-========================================
-404 HANDLER
-========================================
-*/
-
+// ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
-  return res.status(404).json({
-    success: false,
-    message: "Route not found",
-  });
+  return res.status(404).json({ success: false, message: "Route not found" });
 });
 
-/*
-========================================
-GLOBAL ERROR HANDLER
-========================================
-*/
-
+// ── Global error handler ──────────────────────────────────────────────────────
 app.use((error, req, res, next) => {
   console.error("Global Error:", error);
   return res.status(error.status || 500).json({

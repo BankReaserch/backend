@@ -2,389 +2,165 @@
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
+const Book = require("../models/book.model");
 
-const Book =
-  require("../models/book.model");
+// ─── Add Book ─────────────────────────────────────────────────────────────────
 
+exports.addBookService = async (req) => {
+  const {
+    title, author, category, description,
+    pages, price, originalPrice, badge, inStock,
+  } = req.body;
 
-// ADD BOOK
-exports.addBookService =
-  async (req) => {
+  const coverImage = req.files?.coverImage?.[0];
+  const bookFile   = req.files?.bookFile?.[0];
 
-    const {
-      title,
-      author,
-      category,
-      description,
-      pages,
-      price,
-      originalPrice,
-      badge,
-      inStock,
-    } = req.body;
+  if (!title)       throw new Error("Book title required");
+  if (!coverImage)  throw new Error("Cover image required");
+  if (!bookFile)    throw new Error("Book file required");
 
-    // FILES
-    const coverImage =
-      req.files?.coverImage?.[0];
+  const newBook = await Book.create({
+    title,
+    author,
+    category,
+    description,
+    pages:         pages         ? Number(pages)         : null,
+    price:         price         ? Number(price)         : 0,
+    originalPrice: originalPrice ? Number(originalPrice) : null,
+    badge,
+    inStock: inStock !== "false",
 
-    const bookFile =
-      req.files?.bookFile?.[0];
+    // Always store as a clean URL-path starting with /
+    coverImage: `/storage/covers/${coverImage.filename}`,
+    bookFile:   `/storage/books/${bookFile.filename}`,
 
-    // VALIDATION
-    if (!title) {
-      throw new Error(
-        "Book title required"
-      );
-    }
+    originalBookName: bookFile.originalname,
+    mimeType:         bookFile.mimetype,
+    fileSize:         bookFile.size,
+    isProtected:      true,
+  });
 
-    if (!coverImage) {
-      throw new Error(
-        "Cover image required"
-      );
-    }
+  return newBook;
+};
 
-    if (!bookFile) {
-      throw new Error(
-        "Book file required"
-      );
-    }
+// ─── Get Books ────────────────────────────────────────────────────────────────
 
-    // CREATE BOOK
-    const newBook =
-      await Book.create({
+exports.getBooksService = async (req) => {
+  const { search, category, page = 1, limit = 12 } = req.query;
 
-        title,
+  const query = {};
 
-        author,
+  if (search) {
+    query.$or = [
+      { title:  { $regex: search, $options: "i" } },
+      { author: { $regex: search, $options: "i" } },
+    ];
+  }
 
-        category,
+  if (category && category !== "All") {
+    query.category = category;
+  }
 
-        description,
+  const skip = (Number(page) - 1) * Number(limit);
 
-        pages:
-          pages
-            ? Number(pages)
-            : null,
+  const books = await Book.find(query)
+    .select("-bookFile -allowedUsers")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(Number(limit));
 
-        price:
-          price
-            ? Number(price)
-            : 0,
+  const total = await Book.countDocuments(query);
 
-        originalPrice:
-          originalPrice
-            ? Number(
-                originalPrice
-              )
-            : null,
-
-        badge,
-
-        inStock:
-          inStock !== "false",
-
-        // PUBLIC IMAGE
-        coverImage:
-          `/storage/covers/${coverImage.filename}`,
-
-        // PRIVATE FILE
-        bookFile:
-          `/storage/books/${bookFile.filename}`,
-
-        originalBookName:
-          bookFile.originalname,
-
-        mimeType:
-          bookFile.mimetype,
-
-        fileSize:
-          bookFile.size,
-
-        isProtected: true,
-
-      });
-
-    return newBook;
+  return {
+    books,
+    total,
+    currentPage: Number(page),
+    totalPages: Math.ceil(total / limit),
   };
+};
 
+// ─── Download Book ────────────────────────────────────────────────────────────
 
-exports.getBooksService =
-  async (req) => {
+exports.downloadBookService = async (req) => {
+  const { id } = req.params;
 
-    const {
-      search,
-      category,
-      page = 1,
-      limit = 12,
-    } = req.query;
+  const book = await Book.findById(id);
+  if (!book) throw new Error("Book not found");
 
-    const query = {};
+  // TODO: Add purchase / plan validation here
+  const allowed = true;
+  if (!allowed) throw new Error("You don't have access");
 
-    // SEARCH
-    if (search) {
+  const fullPath = path.join(process.cwd(), book.bookFile);
 
-      query.$or = [
-        {
-          title: {
-            $regex: search,
-            $options: "i",
-          },
-        },
-        {
-          author: {
-            $regex: search,
-            $options: "i",
-          },
-        },
-      ];
+  return { path: fullPath, name: book.originalBookName };
+};
 
-    }
+// ─── Update Book ──────────────────────────────────────────────────────────────
 
-    // CATEGORY
-    if (
-      category &&
-      category !== "All"
-    ) {
+exports.updateBookService = async (req) => {
+  const { id } = req.params;
 
-      query.category =
-        category;
+  const existingBook = await Book.findById(id);
+  if (!existingBook) throw new Error("Book not found");
 
-    }
+  const updateData = { ...req.body };
 
-    const skip =
-      (Number(page) - 1) *
-      Number(limit);
+  // Use .filename (not .path) so the stored value is always a clean URL-path,
+  // consistent with how addBookService saves it.
+  if (req.files?.coverImage?.[0]) {
+    updateData.coverImage = `/storage/covers/${req.files.coverImage[0].filename}`;
+  }
 
-    const books =
-      await Book.find(query)
-        .select(
-          "-bookFile -allowedUsers"
-        )
-        .sort({
-          createdAt: -1,
-        })
-        .skip(skip)
-        .limit(Number(limit));
+  if (req.files?.bookFile?.[0]) {
+    updateData.bookFile          = `/storage/books/${req.files.bookFile[0].filename}`;
+    updateData.originalBookName  = req.files.bookFile[0].originalname;
+  }
 
-    const total =
-      await Book.countDocuments(
-        query
-      );
+  const updatedBook = await Book.findByIdAndUpdate(id, updateData, { new: true });
+  return updatedBook;
+};
 
-    return {
-      books,
-      total,
-      currentPage:
-        Number(page),
-      totalPages:
-        Math.ceil(
-          total / limit
-        ),
-    };
-  };
+// ─── Get Single Book ──────────────────────────────────────────────────────────
 
+exports.getSingleBookService = async (req) => {
+  const { id } = req.params;
 
-// DOWNLOAD BOOK
+  const book = await Book.findById(id).select("-bookFile -allowedUsers");
+  if (!book) throw new Error("Book not found");
 
+  return book;
+};
 
-exports.downloadBookService =
-  async (req) => {
+// ─── Delete Book ──────────────────────────────────────────────────────────────
 
-    const { id } = req.params;
+exports.deleteBookService = async (req) => {
+  const { id } = req.params;
 
-    const userId =
-      req.user?.id;
+  if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid book ID");
 
-    const book =
-      await Book.findById(id);
+  const book = await Book.findById(id);
+  if (!book) throw new Error("Book not found");
 
-    if (!book) {
-      throw new Error(
-        "Book not found"
-      );
-    }
+  if (book.coverImage) {
+    const coverPath = path.join(process.cwd(), book.coverImage);
+    if (fs.existsSync(coverPath)) fs.unlinkSync(coverPath);
+  }
 
-    // TODO:
-    // Add purchase validation
+  if (book.bookFile) {
+    const filePath = path.join(process.cwd(), book.bookFile);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  }
 
-    const allowed = true;
+  await Book.findByIdAndDelete(id);
+  return { success: true };
+};
 
-    if (!allowed) {
-      throw new Error(
-        "You don't have access"
-      );
-    }
+// ─── Related Books ────────────────────────────────────────────────────────────
 
-    // ABSOLUTE FILE PATH
-    const fullPath =
-      path.join(
-        process.cwd(),
-        book.bookFile
-      );
+exports.getRelatedBooksService = async (req) => {
+  const { category, id } = req.params;
 
-    return {
-      path: fullPath,
-      name:
-        book.originalBookName,
-    };
-  };
-
-  exports.updateBookService =
-  async (req) => {
-
-    const { id } = req.params;
-
-    const existingBook =
-      await Book.findById(id);
-
-    if (!existingBook) {
-      throw new Error(
-        "Book not found"
-      );
-    }
-
-    const updateData = {
-      ...req.body,
-    };
-
-    // NEW COVER
-    if (
-      req.files?.coverImage?.[0]
-    ) {
-
-      updateData.coverImage =
-        req.files.coverImage[0]
-          .path.replace(/\\/g, "/");
-    }
-
-    // NEW FILE
-    if (
-      req.files?.bookFile?.[0]
-    ) {
-
-      updateData.bookFile =
-        req.files.bookFile[0]
-          .path.replace(/\\/g, "/");
-
-      updateData.originalBookName =
-        req.files.bookFile[0]
-          .originalname;
-    }
-
-    const updatedBook =
-      await Book.findByIdAndUpdate(
-        id,
-        updateData,
-        {
-          new: true,
-        }
-      );
-
-    return updatedBook;
-  };
-
-  // GET SINGLE BOOK
-exports.getSingleBookService =
-  async (req) => {
-
-    const { id } = req.params;
-
-    const book =
-      await Book.findById(id)
-        .select(
-          "-bookFile -allowedUsers"
-        );
-
-    if (!book) {
-      throw new Error(
-        "Book not found"
-      );
-    }
-
-    return book;
-  };
-
-  // DELETE BOOK
-
-
-exports.deleteBookService =
-  async (req) => {
-
-    const { id } = req.params;
-
-    // VALIDATE OBJECT ID
-    if (
-      !mongoose.Types.ObjectId.isValid(
-        id
-      )
-    ) {
-      throw new Error(
-        "Invalid book ID"
-      );
-    }
-
-    // FIND BOOK
-    const book =
-      await Book.findById(id);
-
-    if (!book) {
-      throw new Error(
-        "Book not found"
-      );
-    }
-
-    // DELETE COVER IMAGE
-    if (
-      book.coverImage &&
-      fs.existsSync(
-        book.coverImage
-      )
-    ) {
-
-      fs.unlinkSync(
-        book.coverImage
-      );
-
-    }
-
-    // DELETE BOOK FILE
-    if (
-      book.bookFile &&
-      fs.existsSync(
-        book.bookFile
-      )
-    ) {
-
-      fs.unlinkSync(
-        book.bookFile
-      );
-
-    }
-
-    // DELETE DB RECORD
-    await Book.findByIdAndDelete(
-      id
-    );
-
-    return {
-      success: true,
-    };
-  };
-
-  exports.getRelatedBooksService =
-  async (req) => {
-
-    const {
-      category,
-      id,
-    } = req.params;
-
-    const books =
-      await Book.find({
-        category,
-        _id: { $ne: id },
-      })
-        .limit(4);
-
-    return books;
-  };
+  const books = await Book.find({ category, _id: { $ne: id } }).limit(4);
+  return books;
+};
