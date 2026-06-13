@@ -4,6 +4,9 @@ const {
   loginService,
   verifyAdminOtpService,
   changePasswordService,
+  resetPasswordService,
+  verifyResetOtpService,
+  forgotPasswordService
 } = require("../services/auth.service");
 
 /*
@@ -171,6 +174,83 @@ exports.login =
           user:
             result.user,
         });
+
+    } catch (error) {
+
+      next(error);
+
+    }
+  };
+
+exports.forgotPassword =
+  async (
+    req,
+    res,
+    next
+  ) => {
+
+    try {
+
+      await forgotPasswordService(
+        req.body.email
+      );
+
+      res.json({
+        success: true,
+        message:
+          "OTP sent successfully",
+      });
+
+    } catch (error) {
+
+      next(error);
+
+    }
+  };
+
+  exports.verifyResetOtp =
+  async (
+    req,
+    res,
+    next
+  ) => {
+
+    try {
+
+      const token =
+        await verifyResetOtpService(
+          req.body
+        );
+
+      res.json({
+        success: true,
+        token,
+      });
+
+    } catch (error) {
+
+      next(error);
+
+    }
+  };
+  exports.resetPassword =
+  async (
+    req,
+    res,
+    next
+  ) => {
+
+    try {
+
+      await resetPasswordService(
+        req.body
+      );
+
+      res.json({
+        success: true,
+        message:
+          "Password updated successfully",
+      });
 
     } catch (error) {
 

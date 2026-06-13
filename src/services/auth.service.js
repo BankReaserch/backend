@@ -290,3 +290,156 @@ exports.changePasswordService = async ({
     message: "Password updated successfully",
   };
 };
+
+
+exports.forgotPasswordService =
+  async (email) => {
+
+    const user =
+      await User.findOne({
+        email,
+      });
+
+    if (!user) {
+      throw new Error(
+        "User not found"
+      );
+    }
+
+    const otp =
+      Math.floor(
+        100000 +
+        Math.random() *
+        900000
+      ).toString();
+
+    user.resetPasswordOtp =
+      otp;
+
+    user.resetPasswordOtpExpires =
+      new Date(
+        Date.now() +
+        10 *
+        60 *
+        1000
+      );
+
+    await user.save();
+    console.log(user.email);
+
+    const resetLink =
+  `${process.env.Frontend_URL}/reset-password?email=${encodeURIComponent(
+    user.email
+  )}&otp=${otp}`;
+
+await sendEmail(
+  user.email,
+  resetLink,
+  otp
+);
+
+    return true;
+  };
+
+exports.verifyResetOtpService =
+  async ({
+    email,
+    otp,
+  }) => {
+
+    const user =
+      await User.findOne({
+        email,
+      });
+
+    if (!user) {
+      throw new Error(
+        "User not found"
+      );
+    }
+
+    if (
+      user
+        .resetPasswordOtp !==
+      otp
+    ) {
+      throw new Error(
+        "Invalid OTP"
+      );
+    }
+
+    if (
+      user
+        .resetPasswordOtpExpires <
+      new Date()
+    ) {
+      throw new Error(
+        "OTP expired"
+      );
+    }
+
+    const token =
+      jwt.sign(
+        {
+          userId:
+            user._id,
+          type:
+            "password-reset",
+        },
+        process.env
+          .JWT_SECRET,
+        {
+          expiresIn:
+            "15m",
+        }
+      );
+
+    return token;
+  };
+
+exports.resetPasswordService =
+  async ({
+    token,
+    password,
+  }) => {
+
+    const decoded =
+      jwt.verify(
+        token,
+        process.env
+          .JWT_SECRET
+      );
+
+    if (
+      decoded.type !==
+      "password-reset"
+    ) {
+      throw new Error(
+        "Invalid token"
+      );
+    }
+
+    const user =
+      await User.findById(
+        decoded.userId
+      );
+
+    if (!user) {
+      throw new Error(
+        "User not found"
+      );
+    }
+
+    user.password =
+      password;
+
+    user.resetPasswordOtp =
+      undefined;
+
+    user.resetPasswordOtpExpires =
+      undefined;
+
+    await user.save();
+
+    return true;
+  };

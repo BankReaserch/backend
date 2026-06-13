@@ -15,17 +15,8 @@ CREATE FOLDERS
 ========================================
 */
 
-const coverPath =
-  path.join(
-    __dirname,
-    "../uploads/article-covers"
-  );
-
-const pdfPath =
-  path.join(
-    __dirname,
-    "../uploads/article-pdfs"
-  );
+const coverPath = path.join(__dirname, "../../uploads/article-covers");
+const pdfPath   = path.join(__dirname, "../../uploads/article-pdfs");
 
 if (
   !fs.existsSync(
