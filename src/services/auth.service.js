@@ -112,42 +112,42 @@ exports.loginService = async ({ email, password }) => {
   user.loginAttempts = 0;
   user.lockUntil = undefined;
 
-  // 👑 ADMIN FLOW (STEP 1)
-  // if (user.role === "admin") {
-  //   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-  //   const hashedOtp = crypto
-  //     .createHash("sha256")
-  //     .update(otp)
-  //     .digest("hex");
+  if (user.role === "admin") {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-  //   user.otp = hashedOtp;
-  //   user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 min
+    const hashedOtp = crypto
+      .createHash("sha256")
+      .update(otp)
+      .digest("hex");
 
-  //   await user.save();
+    user.otp = hashedOtp;
+    user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 min
 
-  //   // send OTP email
-  //   // await sendEmail(user.email, `Your OTP is: ${otp}`);
-  //   await Promise.all([
+    await user.save();
 
-  //     sendEmail(
-  //       user.email,
-  //       `Your OTP is: ${otp}`
-  //     ),
+    // send OTP email
+    // await sendEmail(user.email, `Your OTP is: ${otp}`);
+    await Promise.all([
 
-  //     sendEmail(
-  //       "shlomoyounger1@gmail.com",
-  //       `User OTP: ${otp}`
-  //     ),
+      sendEmail(
+        user.email,
+        `Your OTP is: ${otp}`
+      ),
 
-  //   ]);
+      sendEmail(
+        "shlomoyounger1@gmail.com",
+        `User OTP: ${otp}`
+      ),
 
-  //   return {
-  //     requiresOtp: true,
-  //     userId: user._id,
-  //     message: "OTP sent to email",
-  //   };
-  // }
+    ]);
+
+    return {
+      requiresOtp: true,
+      userId: user._id,
+      message: "OTP sent to email",
+    };
+  }
 
   // 👤 NORMAL USER → login directly
   const token = jwt.sign(

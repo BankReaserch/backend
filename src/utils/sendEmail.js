@@ -2,137 +2,137 @@ const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// const sendEmail = async (to, verificationLink) => {
-//   try {
-//     const response = await resend.emails.send({
-//       from: "Ribis <hello@samiramrullah.com>",
-//       to,
-//       subject: "Verify Your Email",
-//       html: `
-//         <div style="font-family: Arial, sans-serif; line-height: 1.6">
-//           <h2>Email Verification</h2>
-
-//           <p>Click the button below to verify your account:</p>
-
-//           <a href="${verificationLink}" 
-//              style="
-//                display:inline-block;
-//                padding:10px 20px;
-//                background:#4CAF50;
-//                color:white;
-//                text-decoration:none;
-//                border-radius:5px;
-//              ">
-//              Verify Email
-//           </a>
-
-//           <p style="margin-top:20px;">
-//             Or copy and paste this link in your browser:
-//           </p>
-
-//           <p>${verificationLink}</p>
-
-//           <p style="color: gray; font-size: 12px;">
-//             This link will expire in 15 minutes.
-//           </p>
-//         </div>
-//       `,
-//     });
-
-//     console.log("✅ Email sent:", response);
-//   } catch (error) {
-//     console.error("❌ Email sending failed:", error);
-//     throw new Error("Email could not be sent");
-//   }
-// };
-
-// module.exports = sendEmail;
-
-
-const sendEmail = async (
-  to,
-  verificationLink,
-  otp = null
-) => {
+const sendEmail = async (to, verificationLink) => {
   try {
+    const response = await resend.emails.send({
+      from: "Ribis <hello@samiramrullah.com>",
+      to,
+      subject: "Verify Your Email",
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6">
+          <h2>Email Verification</h2>
 
-    const response =
-      await resend.emails.send({
-        from: "Ribis <hello@samiramrullah.com>",
-        to,
-        subject: otp
-          ? "Password Reset"
-          : "Verify Your Email",
+          <p>Click the button below to verify your account:</p>
 
-        html: `
-          <div style="font-family: Arial, sans-serif; line-height: 1.6">
+          <a href="${verificationLink}" 
+             style="
+               display:inline-block;
+               padding:10px 20px;
+               background:#4CAF50;
+               color:white;
+               text-decoration:none;
+               border-radius:5px;
+             ">
+             Verify Email
+          </a>
 
-            <h2>
-              ${
-                otp
-                  ? "Password Reset"
-                  : "Email Verification"
-              }
-            </h2>
+          <p style="margin-top:20px;">
+            Or copy and paste this link in your browser:
+          </p>
 
-            ${
-              otp
-                ? `
-                <p>Your OTP is:</p>
+          <p>${verificationLink}</p>
 
-                <h1 style="letter-spacing:4px;">
-                  ${otp}
-                </h1>
+          <p style="color: gray; font-size: 12px;">
+            This link will expire in 15 minutes.
+          </p>
+        </div>
+      `,
+    });
 
-                <p>
-                  This OTP is valid for 10 minutes.
-                </p>
-              `
-                : ""
-            }
-
-            <a
-              href="${verificationLink}"
-              style="
-                display:inline-block;
-                padding:10px 20px;
-                background:#4CAF50;
-                color:white;
-                text-decoration:none;
-                border-radius:5px;
-              "
-            >
-              ${
-                otp
-                  ? "Reset Password"
-                  : "Verify Email"
-              }
-            </a>
-
-            <p style="margin-top:20px;">
-              ${verificationLink}
-            </p>
-
-          </div>
-        `,
-      });
-
-    console.log(
-      "✅ Email sent:",
-      response
-    );
-
+    console.log("✅ Email sent:", response);
   } catch (error) {
-
-    console.error(
-      "❌ Email sending failed:",
-      error
-    );
-
-    throw new Error(
-      "Email could not be sent"
-    );
+    console.error("❌ Email sending failed:", error);
+    throw new Error("Email could not be sent");
   }
 };
 
 module.exports = sendEmail;
+
+
+// const sendEmail = async (
+//   to,
+//   verificationLink,
+//   otp = null
+// ) => {
+//   try {
+
+//     const response =
+//       await resend.emails.send({
+//         from: "Ribis <hello@samiramrullah.com>",
+//         to,
+//         subject: otp
+//           ? "Password Reset"
+//           : "Verify Your Email",
+
+//         html: `
+//           <div style="font-family: Arial, sans-serif; line-height: 1.6">
+
+//             <h2>
+//               ${
+//                 otp
+//                   ? "Password Reset"
+//                   : "Email Verification"
+//               }
+//             </h2>
+
+//             ${
+//               otp
+//                 ? `
+//                 <p>Your OTP is:</p>
+
+//                 <h1 style="letter-spacing:4px;">
+//                   ${otp}
+//                 </h1>
+
+//                 <p>
+//                   This OTP is valid for 10 minutes.
+//                 </p>
+//               `
+//                 : ""
+//             }
+
+//             <a
+//               href="${verificationLink}"
+//               style="
+//                 display:inline-block;
+//                 padding:10px 20px;
+//                 background:#4CAF50;
+//                 color:white;
+//                 text-decoration:none;
+//                 border-radius:5px;
+//               "
+//             >
+//               ${
+//                 otp
+//                   ? "Reset Password"
+//                   : "Verify Email"
+//               }
+//             </a>
+
+//             <p style="margin-top:20px;">
+//               ${verificationLink}
+//             </p>
+
+//           </div>
+//         `,
+//       });
+
+//     console.log(
+//       "✅ Email sent:",
+//       response
+//     );
+
+//   } catch (error) {
+
+//     console.error(
+//       "❌ Email sending failed:",
+//       error
+//     );
+
+//     throw new Error(
+//       "Email could not be sent"
+//     );
+//   }
+// };
+
+// module.exports = sendEmail;
