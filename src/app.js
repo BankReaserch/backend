@@ -21,7 +21,7 @@ const brokerRoutes     = require("./routes/broker.routes");
 const contactRoutes    = require("./routes/contact.routes");
 const investmentRoutes = require("./routes/investment.routes");
 const planController   = require("./controllers/plan.controller");
-
+const subscribeController = require('./routes/subscriber.routes')
 app.set("trust proxy", 1);
 
 const allowedOrigins = [
@@ -83,6 +83,7 @@ app.use("/api/dashboard",   dashboardRoutes);
 app.use("/api/brokers",     brokerRoutes);
 app.use("/api/investments",  investmentRoutes);
 app.use("/api/contact",     contactRoutes);
+app.use("/api/subscribers",subscribeController)
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {

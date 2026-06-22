@@ -40,3 +40,26 @@ exports.isAdmin = (req, res, next) => {
   }
   next();
 };
+
+exports.optional = async (req, res, next) => {
+  try {
+    const token = req.cookies.token;
+
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    req.user = decoded;
+
+    next();
+  } catch {
+    req.user = null;
+    next();
+  }
+};
