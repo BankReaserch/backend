@@ -63,78 +63,67 @@ exports.getAudios =
 // =========================
 // STREAM AUDIO
 // =========================
-exports.streamAudio =
-  async (
-    req,
-    res,
-    next
-  ) => {
-    try {
-      const audio =
-        await Audio.findById(
-          req.params.id
-        );
+exports.streamAudio = async (req, res, next) => {
+  try {
+    const audio = await Audio.findById(req.params.id);
 
-      if (!audio) {
-        return res
-          .status(404)
-          .json({
-            message:
-              "Audio not found",
-          });
-      }
+    if (!audio) {
+      return res.status(404).json({
+        message: "Audio not found",
+      });
+    }
 
-      // EXAMPLE ACCESS CONTROL
-      // if (
-      //   req.user.role !==
-      //   "admin"
-      // ) {
-      //   return res
-      //     .status(403)
-      //     .json({
-      //       message:
-      //         "Access denied",
-      //     });
-      // }
+    const filePath = path.join(
+      process.cwd(),
+      "storage/audio",
+      audio.filename
+    );
 
-      const filePath =
-        path.join(
-          process.cwd(),
-          "storage/audio",
-          audio.filename
-        );
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        message: "Audio file missing",
+      });
+    }
 
-      if (
-        !fs.existsSync(
-          filePath
-        )
-      ) {
-        return res
-          .status(404)
-          .json({
-            message:
-              "Audio file missing",
-          });
-      }
+    const stat = fs.statSync(filePath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
 
-      const stat =
-        fs.statSync(filePath);
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1]
+        ? parseInt(parts[1], 10)
+        : fileSize - 1;
 
-      res.writeHead(200, {
-        "Content-Type":
-          audio.mimetype,
+      const chunkSize = end - start + 1;
 
-        "Content-Length":
-          stat.size,
+      const stream = fs.createReadStream(filePath, {
+        start,
+        end,
       });
 
-      fs.createReadStream(
-        filePath
-      ).pipe(res);
-    } catch (error) {
-      next(error);
+      res.writeHead(206, {
+        "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": chunkSize,
+        "Content-Type": audio.mimetype,
+      });
+
+      stream.pipe(res);
+    } else {
+      res.writeHead(200, {
+        "Content-Length": fileSize,
+        "Content-Type": audio.mimetype,
+        "Accept-Ranges": "bytes",
+      });
+
+      fs.createReadStream(filePath).pipe(res);
     }
-  };
+  } catch (error) {
+    next(error);
+  }
+};
 
 // =========================
 // DOWNLOAD AUDIO

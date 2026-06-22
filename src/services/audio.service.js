@@ -18,6 +18,8 @@ exports.uploadAudioService =
     const {
       title,
       artist,
+      category,
+      series,
     } = req.body;
 
     if (!title) {
@@ -31,6 +33,12 @@ exports.uploadAudioService =
         title,
 
         artist,
+
+        category:
+          category || "English",
+
+        series:
+          series || "",
 
         filename:
           req.file.filename,
