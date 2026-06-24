@@ -32,7 +32,7 @@ const generatePassword = () => {
 
 const createAdminIfNotExists = async () => {
   try {
-    const adminEmail = "samiramrullah@gmail.com";
+    const adminEmail = "inifnitysolution@gmail.com";
     const existingAdmin = await User.findOne({
       role: "admin",
     });
