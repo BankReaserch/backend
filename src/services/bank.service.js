@@ -1,244 +1,193 @@
-const Bank =
-  require(
-    "../models/bank.model"
-  );
+// services/bank.service.js
 
+const path = require("path");
+const fs = require("fs");
 
+const Bank = require("../models/bank.model");
+const { generatePdfPreview } = require("../utils/pdfPreview.util");
 
-exports.createBankService =
-  async (
-    body,
-    files,
-    userId
-  ) => {
+// Reports live in the same place viewBankReportController /
+// downloadBankReportController already read them from.
+const REPORTS_DIR = path.join(__dirname, "..", "uploads", "reports");
 
-    const reportFile =
-      files?.report?.[0];
+// Generates a physically 2-page-only PDF next to the full report and
+// returns its filename, or "" if generation fails (e.g. non-PDF
+// upload). Never throws — a failed preview shouldn't block the
+// create/update of the bank itself.
+const buildReportPreview = async (reportFile) => {
+  if (!reportFile) return "";
 
-    const coverImage =
-      files?.coverImage?.[0];
+  try {
+    const previewFilename = `preview-${reportFile.filename}`;
+    const previewPath = path.join(REPORTS_DIR, previewFilename);
 
-    const bank =
-      await Bank.create({
-        name:
-          body.name,
+    await generatePdfPreview(reportFile.path, previewPath, 2);
 
-        type:
-          body.type,
+    return previewFilename;
+  } catch (error) {
+    console.error(
+      "Report preview generation failed:",
+      error.message
+    );
+    return "";
+  }
+};
 
-        location:
-          body.location,
+exports.createBankService = async (
+  body,
+  files,
+  userId
+) => {
+  const reportFile = files?.report?.[0];
+  const coverImage = files?.coverImage?.[0];
 
-        status:
-          body.status,
+  const reportPreview = await buildReportPreview(reportFile);
 
-        website:
-          body.website,
+  const bank = await Bank.create({
+    name: body.name,
+    type: body.type,
+    location: body.location,
+    status: body.status,
+    website: body.website,
+    assets: body.assets,
+    founded: body.founded,
+    lastReviewed: body.lastReviewed || null,
+    publicInfo: body.publicInfo,
 
-        assets:
-          body.assets,
+    reportUrl: reportFile?.filename || "",
+    reportAvailable: !!reportFile,
+    reportPreview,
 
-        founded:
-          body.founded,
+    coverImage: coverImage?.filename || "",
+    createdBy: userId,
+  });
 
-        lastReviewed:
-          body.lastReviewed ||
-          null,
+  return bank;
+};
 
-        publicInfo:
-          body.publicInfo,
+exports.updateBankService = async (
+  id,
+  body,
+  files
+) => {
+  const bank = await Bank.findById(id);
 
-        reportUrl:
-          reportFile
-            ?.filename || "",
+  if (!bank) {
+    throw new Error("Bank not found");
+  }
 
-        reportAvailable:
-          !!reportFile,
+  const reportFile = files?.report?.[0];
+  const coverImage = files?.coverImage?.[0];
 
-        coverImage:
-          coverImage
-            ?.filename || "",
+  bank.name = body.name;
+  bank.type = body.type;
+  bank.location = body.location;
+  bank.status = body.status;
+  bank.website = body.website;
+  bank.assets = body.assets;
+  bank.founded = body.founded;
+  bank.lastReviewed = body.lastReviewed || null;
+  bank.publicInfo = body.publicInfo;
 
-        createdBy:
-          userId,
-      });
+  if (reportFile) {
+    bank.reportUrl = reportFile.filename;
+    bank.reportAvailable = true;
+    bank.reportPreview = await buildReportPreview(reportFile);
+  }
 
-    return bank;
+  if (coverImage) {
+    bank.coverImage = coverImage.filename;
+  }
+
+  await bank.save();
+
+  return bank;
+};
+
+exports.getAllBanksService = async () => {
+  return await Bank.find().sort({ createdAt: -1 });
+};
+
+exports.getSingleBankService = async (id) => {
+  const bank = await Bank.findById(id);
+
+  if (!bank) {
+    throw new Error("Bank not found");
+  }
+
+  return bank;
+};
+
+exports.deleteBankService = async (id) => {
+  const bank = await Bank.findById(id);
+
+  if (!bank) {
+    throw new Error("Bank not found");
+  }
+
+  await Bank.findByIdAndDelete(id);
+
+  return true;
+};
+
+// One-off backfill: generates a preview for every bank that already
+// has a full report on disk but no reportPreview yet (anything
+// created/updated before the preview feature existed). Runs inside
+// the already-connected app — no separate DB connection needed.
+// Safe to call more than once; already-backfilled banks are skipped.
+exports.backfillReportPreviewsService = async () => {
+  const banks = await Bank.find({
+    reportUrl: { $exists: true, $ne: "" },
+    $or: [
+      { reportPreview: { $exists: false } },
+      { reportPreview: "" },
+    ],
+  });
+
+  const results = {
+    total: banks.length,
+    succeeded: 0,
+    skipped: 0,
+    failed: 0,
+    details: [],
   };
 
-exports.updateBankService =
-  async (
-    id,
-    body,
-    files
-  ) => {
+  for (const bank of banks) {
+    const sourcePath = path.join(REPORTS_DIR, bank.reportUrl);
 
-    const bank =
-      await Bank.findById(
-        id
-      );
-
-    if (!bank) {
-
-      throw new Error(
-        "Bank not found"
-      );
+    if (!fs.existsSync(sourcePath)) {
+      results.skipped++;
+      results.details.push({
+        bank: bank.name,
+        status: "skipped",
+        reason: "report file missing on disk",
+      });
+      continue;
     }
 
-    const reportFile =
-      files?.report?.[0];
+    const previewFilename = await buildReportPreview({
+      filename: bank.reportUrl,
+      path: sourcePath,
+    });
 
-    const coverImage =
-      files?.coverImage?.[0];
-
-    bank.name =
-      body.name;
-
-    bank.type =
-      body.type;
-
-    bank.location =
-      body.location;
-
-    bank.status =
-      body.status;
-
-    bank.website =
-      body.website;
-
-    bank.assets =
-      body.assets;
-
-    bank.founded =
-      body.founded;
-
-    bank.lastReviewed =
-      body.lastReviewed ||
-      null;
-
-    bank.publicInfo =
-      body.publicInfo;
-
-    if (
-      reportFile
-    ) {
-
-      bank.reportUrl =
-        reportFile.filename;
-
-      bank.reportAvailable =
-        true;
+    if (!previewFilename) {
+      results.failed++;
+      results.details.push({
+        bank: bank.name,
+        status: "failed",
+      });
+      continue;
     }
 
-    if (
-      coverImage
-    ) {
-
-      bank.coverImage =
-        coverImage.filename;
-    }
-
+    bank.reportPreview = previewFilename;
     await bank.save();
 
-    return bank;
-  };
+    results.succeeded++;
+    results.details.push({
+      bank: bank.name,
+      status: "ok",
+    });
+  }
 
-exports.getAllBanksService =
-  async () => {
-
-    return await Bank.find()
-      .sort({
-        createdAt: -1,
-      });
-
-  };
-
-exports.getSingleBankService =
-  async (id) => {
-
-    const bank =
-      await Bank.findById(
-        id
-      );
-
-    if (!bank) {
-
-      throw new Error(
-        "Bank not found"
-      );
-    }
-
-    return bank;
-  };
-
-exports.deleteBankService =
-  async (id) => {
-
-    const bank =
-      await Bank.findById(
-        id
-      );
-
-    if (!bank) {
-
-      throw new Error(
-        "Bank not found"
-      );
-    }
-
-    await Bank.findByIdAndDelete(
-      id
-    );
-
-    return true;
-  };
-
-exports.getAllBanksService =
-  async () => {
-
-    return await Bank.find()
-      .sort({
-        createdAt: -1,
-      });
-
-  };
-
-exports.getSingleBankService =
-  async (id) => {
-
-    const bank =
-      await Bank.findById(
-        id
-      );
-
-    if (!bank) {
-
-      throw new Error(
-        "Bank not found"
-      );
-    }
-
-    return bank;
-  };
-
-exports.deleteBankService =
-  async (id) => {
-
-    const bank =
-      await Bank.findById(
-        id
-      );
-
-    if (!bank) {
-
-      throw new Error(
-        "Bank not found"
-      );
-    }
-
-    await Bank.findByIdAndDelete(
-      id
-    );
-
-    return true;
-  };
+  return results;
+};

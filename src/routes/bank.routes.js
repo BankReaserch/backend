@@ -27,6 +27,8 @@ const {
   deleteBankController,
   downloadBankReportController,
   viewBankReportController,
+  previewBankReportController,
+  backfillReportPreviewsController,
 } = require(
   "../controllers/bank.controller"
 );
@@ -40,6 +42,14 @@ router.get(
 router.get(
   "/:id",
   getSingleBankController
+);
+
+// PUBLIC: free preview (first pages only) — no auth / no plan required.
+// The file served here is a physically truncated PDF generated at
+// upload time, so there is nothing beyond the preview pages to leak.
+router.get(
+  "/preview-report/:id",
+  previewBankReportController
 );
 
 /*
@@ -85,6 +95,15 @@ router.get(
   authenticate,
   requirePlan,
   downloadBankReportController
+);
+
+// One-off backfill for reports uploaded before the preview feature
+// existed. Call once (POST, admin session), then it's done.
+router.post(
+  "/backfill-report-previews",
+  authenticate,
+  isAdmin,
+  backfillReportPreviewsController
 );
 
 router.put(
