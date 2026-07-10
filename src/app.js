@@ -22,6 +22,7 @@ const contactRoutes    = require("./routes/contact.routes");
 const investmentRoutes = require("./routes/investment.routes");
 const planController   = require("./controllers/plan.controller");
 const subscribeController = require('./routes/subscriber.routes')
+const videoController = require('./routes/video.routes')
 app.set("trust proxy", 1);
 
 const allowedOrigins = [
@@ -84,6 +85,7 @@ app.use("/api/brokers",     brokerRoutes);
 app.use("/api/investments",  investmentRoutes);
 app.use("/api/contact",     contactRoutes);
 app.use("/api/subscribers",subscribeController)
+app.use("/api/video",videoController)
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {

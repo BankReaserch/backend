@@ -31,13 +31,6 @@ const {
   "../controllers/bank.controller"
 );
 
-/*
-========================================
-PUBLIC
-========================================
-*/
-
-// GET ALL BANKS
 router.get(
   "/all",
   getAllBanksController
