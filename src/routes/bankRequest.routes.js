@@ -7,7 +7,7 @@ const {
   getBankRequests,
   updateBankRequest,
   deleteBankRequest,
-} = require("../controllers/bankrequest.controller");
+} = require("../controllers/bankRequest.controller");
 
 const {
   authenticate,
