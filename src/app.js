@@ -23,6 +23,10 @@ const investmentRoutes = require("./routes/investment.routes");
 const planController   = require("./controllers/plan.controller");
 const subscribeController = require('./routes/subscriber.routes')
 const videoController = require('./routes/video.routes')
+const bankRequestRoutes = require("./routes/bankRequest.route");
+
+
+
 app.set("trust proxy", 1);
 
 const allowedOrigins = [
@@ -82,7 +86,7 @@ app.use("/api/investments",  investmentRoutes);
 app.use("/api/contact",     contactRoutes);
 app.use("/api/subscribers",subscribeController)
 app.use("/api/video",videoController)
-
+app.use("/api/bank-requests",bankRequestRoutes);
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
   return res.status(404).json({ success: false, message: "Route not found" });
