@@ -32,7 +32,6 @@ exports.createBankRequest = async (req, res) => {
       success: true,
       message:
         "Your request has been submitted successfully.",
-      data: result,
     });
   } catch (error) {
     console.error("Create Bank Request Error:", error);
@@ -83,7 +82,7 @@ exports.updateBankRequest = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Request updated successfully.",
-      data: request,
+      // data: request,
     });
   } catch (error) {
     console.error("Update Bank Request Error:", error);
