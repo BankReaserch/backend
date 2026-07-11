@@ -1,4 +1,4 @@
-const BankRequest = require("../models/bankRequest.model");
+const BankRequest = require("../models/bankrequest.model");
 
 exports.createBankRequestService = async (data) => {
   return await BankRequest.create(data);
