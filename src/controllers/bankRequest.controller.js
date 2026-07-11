@@ -3,7 +3,7 @@ const {
   getBankRequestsService,
   updateBankRequestService,
   deleteBankRequestService,
-} = require("../services/bankRequest.service");
+} = require("../services/bankrequest.service");
 
 exports.createBankRequest = async (req, res) => {
   try {
