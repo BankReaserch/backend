@@ -7,12 +7,10 @@ const Audio = require("../models/audio.model");
 const {
   uploadAudioService,
   getAudiosService,
+  updateAudioService,
   deleteAudioService,
 } = require("../services/audio.service");
 
-// =========================
-// UPLOAD
-// =========================
 exports.uploadAudio =
   async (
     req,
@@ -38,9 +36,6 @@ exports.uploadAudio =
     }
   };
 
-// =========================
-// GET ALL
-// =========================
 exports.getAudios =
   async (
     req,
@@ -60,9 +55,7 @@ exports.getAudios =
     }
   };
 
-// =========================
-// STREAM AUDIO
-// =========================
+
 exports.streamAudio = async (req, res, next) => {
   try {
     const audio = await Audio.findById(req.params.id);
@@ -125,9 +118,31 @@ exports.streamAudio = async (req, res, next) => {
   }
 };
 
-// =========================
-// DOWNLOAD AUDIO
-// =========================
+exports.updateAudio =
+  async (
+    req,
+    res,
+    next
+  ) => {
+    try {
+
+      const audio =
+        await updateAudioService(
+          req.params.id,
+          req
+        );
+
+      res.status(200).json({
+        success: true,
+        message:
+          "Audio updated successfully",
+        audio,
+      });
+
+    } catch (error) {
+      next(error);
+    }
+  };
 exports.downloadAudio =
   async (
     req,
@@ -165,9 +180,6 @@ exports.downloadAudio =
     }
   };
 
-// =========================
-// DELETE
-// =========================
 exports.deleteAudio =
   async (
     req,

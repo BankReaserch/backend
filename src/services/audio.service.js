@@ -52,9 +52,60 @@ exports.uploadAudioService =
     return audio;
   };
 
-// =========================
-// GET ALL
-// =========================
+exports.updateAudioService = async (
+  id,
+  req
+) => {
+  const audio = await Audio.findById(id);
+
+  if (!audio) {
+    throw new Error("Audio not found");
+  }
+
+  // =========================
+  // UPDATE BASIC FIELDS
+  // =========================
+
+  if (req.body.title !== undefined) {
+    audio.title = req.body.title.trim();
+  }
+
+  if (req.body.artist !== undefined) {
+    audio.artist = req.body.artist.trim();
+  }
+
+  if (req.body.category !== undefined) {
+    audio.category = req.body.category;
+  }
+
+  if (req.body.series !== undefined) {
+    audio.series = req.body.series;
+  }
+
+  // =========================
+  // REPLACE AUDIO FILE
+  // =========================
+
+  if (req.file) {
+    const oldFilePath = path.join(
+      process.cwd(),
+      "storage/audio",
+      audio.filename
+    );
+
+    if (fs.existsSync(oldFilePath)) {
+      fs.unlinkSync(oldFilePath);
+    }
+
+    audio.filename = req.file.filename;
+    audio.mimetype = req.file.mimetype;
+    audio.size = req.file.size;
+  }
+
+  await audio.save();
+
+  return audio;
+};
 exports.getAudiosService =
   async () => {
     return await Audio.find().sort(

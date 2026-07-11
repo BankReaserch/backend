@@ -42,15 +42,12 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-// ── Stripe webhook — MUST be before express.json() ───────────────────────────
 app.post(
   "/api/plan/webhook",
   express.raw({ type: "application/json" }),
   planController.handleStripeWebhook
 );
 
-// ── General middleware ────────────────────────────────────────────────────────
 app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(express.json());
@@ -69,7 +66,6 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 // NOTE: storage/books and storage/reports are intentionally NOT static-served.
 // They are protected and only accessible via authenticated download controllers.
 
-// ── API routes ────────────────────────────────────────────────────────────────
 app.use("/api/auth",        authRoutes);
 app.use("/api/audio",       audioRoutes);
 app.use("/api/order",       orderRoutes);

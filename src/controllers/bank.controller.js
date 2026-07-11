@@ -92,6 +92,10 @@ exports.deleteBankController = async (
   }
 };
 
+// PROTECTED — bank.reportUrl lives in backend/storage/reports, which
+// has no express.static mount anywhere in app.js. authenticate +
+// requirePlan (enforced in bank.routes.js) is the only gate; there is
+// no public URL for this file to leak through.
 exports.viewBankReportController = async (
   req,
   res
@@ -110,7 +114,7 @@ exports.viewBankReportController = async (
 
     const filePath = path.join(
       __dirname,
-      "../uploads/reports",
+      "../../storage/reports",
       bank.reportUrl
     );
 
@@ -148,7 +152,7 @@ exports.downloadBankReportController = async (
 
     const filePath = path.join(
       __dirname,
-      "../uploads/reports",
+      "../../storage/reports",
       bank.reportUrl
     );
 
@@ -190,7 +194,7 @@ exports.previewBankReportController = async (
 
     const filePath = path.join(
       __dirname,
-      "../uploads/reports",
+      "../../storage/reports",
       bank.reportPreview
     );
 

@@ -6,9 +6,16 @@ const fs = require("fs");
 const Bank = require("../models/bank.model");
 const { generatePdfPreview } = require("../utils/pdfPreview.util");
 
-// Reports live in the same place viewBankReportController /
-// downloadBankReportController already read them from.
-const REPORTS_DIR = path.join(__dirname, "..", "uploads", "reports");
+// Reports live in backend/storage/reports — protected, never
+// statically mounted. Matches bookUpload.js's storage/books
+// convention and the (now-fixed) upload.middleware.js destination.
+const REPORTS_DIR = path.join(
+  __dirname,
+  "..",
+  "..",
+  "storage",
+  "reports"
+);
 
 // Generates a physically 2-page-only PDF next to the full report and
 // returns its filename, or "" if generation fails (e.g. non-PDF
