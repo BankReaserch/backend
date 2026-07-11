@@ -23,7 +23,7 @@ const investmentRoutes = require("./routes/investment.routes");
 const planController   = require("./controllers/plan.controller");
 const subscribeController = require('./routes/subscriber.routes')
 const videoController = require('./routes/video.routes')
-const bankRequestRoutes = require("./routes/bankrequest.routes");
+const bankRequestRoutes = require("./routes/bankRequest.routes");
 
 
 
