@@ -17,10 +17,12 @@ const REPORTS_DIR = path.join(
   "reports"
 );
 
-// Generates a physically 2-page-only PDF next to the full report and
+// Generates a physically 1-page-only PDF next to the full report and
 // returns its filename, or "" if generation fails (e.g. non-PDF
-// upload). Never throws — a failed preview shouldn't block the
-// create/update of the bank itself.
+// upload). The free preview is now shown fully blurred behind an
+// upgrade paywall on the frontend, so there's no reason to ship more
+// than a single page down to the browser. Never throws — a failed
+// preview shouldn't block the create/update of the bank itself.
 const buildReportPreview = async (reportFile) => {
   if (!reportFile) return "";
 
@@ -28,7 +30,7 @@ const buildReportPreview = async (reportFile) => {
     const previewFilename = `preview-${reportFile.filename}`;
     const previewPath = path.join(REPORTS_DIR, previewFilename);
 
-    await generatePdfPreview(reportFile.path, previewPath, 2);
+    await generatePdfPreview(reportFile.path, previewPath, 1);
 
     return previewFilename;
   } catch (error) {
