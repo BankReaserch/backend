@@ -11,6 +11,11 @@ const {
   "../middleware/auth.middleware"
 );
 
+const upload =
+  require(
+    "../middleware/brokerUpload.middleware"
+  );
+
 const {
   createBrokerController,
   getAllBrokersController,
@@ -43,6 +48,7 @@ router.post(
   "/create",
   authenticate,
   isAdmin,
+  upload.single("logo"),
   createBrokerController
 );
 
@@ -51,6 +57,7 @@ router.put(
   "/update/:id",
   authenticate,
   isAdmin,
+  upload.single("logo"),
   updateBrokerController
 );
 

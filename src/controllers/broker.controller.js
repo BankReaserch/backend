@@ -7,6 +7,12 @@ const {
   "../services/broker.service"
 );
 
+const {
+  sendErrorResponse,
+} = require(
+  "../utils/sendErrorResponse"
+);
+
 /*
 ========================================
 CREATE
@@ -21,10 +27,20 @@ exports.createBrokerController =
 
     try {
 
+      const logoUrl =
+        req.file
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/uploads/broker-logos/${
+              req.file.filename
+            }`
+          : "";
+
       const broker =
-        await createBrokerService(
-          req.body
-        );
+        await createBrokerService({
+          ...req.body,
+          logoUrl,
+        });
 
       return res
         .status(201)
@@ -39,14 +55,11 @@ exports.createBrokerController =
 
     } catch (error) {
 
-      return res
-        .status(500)
-        .json({
-          success: false,
-
-          message:
-            error.message,
-        });
+      return sendErrorResponse(
+        res,
+        error,
+        "createBrokerController"
+      );
     }
   };
 
@@ -77,14 +90,11 @@ exports.getAllBrokersController =
 
     } catch (error) {
 
-      return res
-        .status(500)
-        .json({
-          success: false,
-
-          message:
-            error.message,
-        });
+      return sendErrorResponse(
+        res,
+        error,
+        "getAllBrokersController"
+      );
     }
   };
 
@@ -102,10 +112,20 @@ exports.updateBrokerController =
 
     try {
 
+      const logoUrl =
+        req.file
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/uploads/broker-logos/${
+              req.file.filename
+            }`
+          : undefined;
+
       const broker =
         await updateBrokerService(
           req.params.id,
-          req.body
+          req.body,
+          logoUrl
         );
 
       return res
@@ -121,14 +141,11 @@ exports.updateBrokerController =
 
     } catch (error) {
 
-      return res
-        .status(500)
-        .json({
-          success: false,
-
-          message:
-            error.message,
-        });
+      return sendErrorResponse(
+        res,
+        error,
+        "updateBrokerController"
+      );
     }
   };
 
@@ -161,13 +178,10 @@ exports.deleteBrokerController =
 
     } catch (error) {
 
-      return res
-        .status(500)
-        .json({
-          success: false,
-
-          message:
-            error.message,
-        });
+      return sendErrorResponse(
+        res,
+        error,
+        "deleteBrokerController"
+      );
     }
   };

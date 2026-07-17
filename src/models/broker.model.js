@@ -28,10 +28,47 @@ const brokerSchema =
         trim: true,
       },
 
+      email: {
+        type: String,
+        required: true,
+        trim: true,
+        lowercase: true,
+      },
+
       website: {
         type: String,
         required: true,
         trim: true,
+      },
+
+      mortgageType: {
+        type: String,
+        enum: [
+          "Residential",
+          "Commercial",
+          "Both",
+        ],
+        default: "Residential",
+      },
+
+      kosherStatus: {
+        type: String,
+        enum: [
+          "Totally Kosher",
+          "Offers Kosher Line",
+        ],
+        default: "Totally Kosher",
+      },
+
+      kosherLine: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+
+      logoUrl: {
+        type: String,
+        default: "",
       },
     },
     {
