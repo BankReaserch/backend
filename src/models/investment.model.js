@@ -18,6 +18,11 @@ const investmentSchema =
       type: {
         type: String,
         required: true,
+        enum: [
+          "All Investments",
+          "High Yield Savings",
+        ],
+        default: "All Investments",
       },
 
       minimumInvestment: {
@@ -46,6 +51,16 @@ const investmentSchema =
 
       website: {
         type: String,
+      },
+
+      phoneNumber: {
+        type: String,
+        default: "",
+      },
+
+      email: {
+        type: String,
+        default: "",
       },
 
       description: {
