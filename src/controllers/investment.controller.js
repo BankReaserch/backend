@@ -7,13 +7,28 @@ const {
 } = require(
   "../services/investment.service"
 );
+
 const path =
   require("path");
+
+const fs =
+  require("fs");
 
 const Investment =
   require(
     "../models/investment.model"
   );
+
+const AppError =
+  require(
+    "../utils/AppError"
+  );
+
+const {
+  sendErrorResponse,
+} = require(
+  "../utils/sendErrorResponse"
+);
 
 exports.createInvestmentController =
   async (req, res) => {
@@ -33,14 +48,15 @@ exports.createInvestmentController =
 
     } catch (error) {
 
-      return res.status(500).json({
-        success: false,
-        message:
-          error.message,
-      });
+      return sendErrorResponse(
+        res,
+        error,
+        "createInvestmentController"
+      );
 
     }
   };
+
 exports.downloadInvestmentReportController =
   async (req, res) => {
 
@@ -52,32 +68,63 @@ exports.downloadInvestmentReportController =
         );
 
       if (!investment?.reportUrl) {
-        return res.status(404).json({
-          success: false,
-          message: "Report not found",
-        });
+        throw new AppError(
+          "Report not found",
+          404
+        );
       }
 
-      const filePath = path.join(
-        __dirname,
-        "../uploads/reports",
-        investment.reportUrl
-      );
+      const reportsDir =
+        path.join(
+          __dirname,
+          "../uploads/reports"
+        );
+
+      const filePath =
+        path.join(
+          reportsDir,
+          path.basename(
+            investment.reportUrl
+          )
+        );
+
+      if (
+        !filePath.startsWith(
+          reportsDir
+        ) ||
+        !fs.existsSync(filePath)
+      ) {
+        throw new AppError(
+          "Report not found",
+          404
+        );
+      }
 
       return res.download(
-        filePath
+        filePath,
+        (err) => {
+          if (err && !res.headersSent) {
+            sendErrorResponse(
+              res,
+              err,
+              "downloadInvestmentReportController"
+            );
+          }
+        }
       );
 
     } catch (error) {
 
-      return res.status(500).json({
-        success: false,
-        message: error.message,
-      });
+      return sendErrorResponse(
+        res,
+        error,
+        "downloadInvestmentReportController"
+      );
 
     }
 
   };
+
 exports.getAllInvestmentsController =
   async (req, res) => {
     try {
@@ -92,11 +139,11 @@ exports.getAllInvestmentsController =
 
     } catch (error) {
 
-      return res.status(500).json({
-        success: false,
-        message:
-          error.message,
-      });
+      return sendErrorResponse(
+        res,
+        error,
+        "getAllInvestmentsController"
+      );
 
     }
   };
@@ -117,11 +164,11 @@ exports.getSingleInvestmentController =
 
     } catch (error) {
 
-      return res.status(500).json({
-        success: false,
-        message:
-          error.message,
-      });
+      return sendErrorResponse(
+        res,
+        error,
+        "getSingleInvestmentController"
+      );
 
     }
   };
@@ -144,11 +191,11 @@ exports.updateInvestmentController =
 
     } catch (error) {
 
-      return res.status(500).json({
-        success: false,
-        message:
-          error.message,
-      });
+      return sendErrorResponse(
+        res,
+        error,
+        "updateInvestmentController"
+      );
 
     }
   };
@@ -169,11 +216,11 @@ exports.deleteInvestmentController =
 
     } catch (error) {
 
-      return res.status(500).json({
-        success: false,
-        message:
-          error.message,
-      });
+      return sendErrorResponse(
+        res,
+        error,
+        "deleteInvestmentController"
+      );
 
     }
   };

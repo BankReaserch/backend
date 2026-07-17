@@ -3,11 +3,10 @@ const Investment =
     "../models/investment.model"
   );
 
-/*
-====================================
-CREATE
-====================================
-*/
+const AppError =
+  require(
+    "../utils/AppError"
+  );
 
 exports.createInvestmentService =
   async (
@@ -30,12 +29,6 @@ exports.createInvestmentService =
     });
   };
 
-/*
-====================================
-GET ALL
-====================================
-*/
-
 exports.getAllInvestmentsService =
   async () => {
 
@@ -44,12 +37,6 @@ exports.getAllInvestmentsService =
         createdAt: -1,
       });
   };
-
-/*
-====================================
-GET SINGLE
-====================================
-*/
 
 exports.getSingleInvestmentService =
   async (id) => {
@@ -60,19 +47,14 @@ exports.getSingleInvestmentService =
       );
 
     if (!investment) {
-      throw new Error(
-        "Investment not found"
+      throw new AppError(
+        "Investment not found",
+        404
       );
     }
 
     return investment;
   };
-
-/*
-====================================
-UPDATE
-====================================
-*/
 
 exports.updateInvestmentService =
   async (
@@ -87,8 +69,9 @@ exports.updateInvestmentService =
       );
 
     if (!investment) {
-      throw new Error(
-        "Investment not found"
+      throw new AppError(
+        "Investment not found",
+        404
       );
     }
 
@@ -110,12 +93,6 @@ exports.updateInvestmentService =
     return investment;
   };
 
-/*
-====================================
-DELETE
-====================================
-*/
-
 exports.deleteInvestmentService =
   async (id) => {
 
@@ -125,8 +102,9 @@ exports.deleteInvestmentService =
       );
 
     if (!investment) {
-      throw new Error(
-        "Investment not found"
+      throw new AppError(
+        "Investment not found",
+        404
       );
     }
 
