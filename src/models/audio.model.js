@@ -6,25 +6,23 @@ const audioSchema = new mongoose.Schema(
     title: {
       type: String,
       required: true,
+      trim: true,
     },
 
     artist: {
       type: String,
+      trim: true,
     },
 
     category: {
       type: String,
-      enum: [
-        "English",
-        "Hebrew",
-        "Yiddish",
-        "Other",
-      ],
-      default: "Other",
+      trim: true,
+      default: "English",
     },
 
     series: {
       type: String,
+      trim: true,
       default: "",
     },
 

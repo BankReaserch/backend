@@ -1,12 +1,7 @@
 const fs = require("fs");
-
 const path = require("path");
-
 const Audio = require("../models/audio.model");
 
-// =========================
-// UPLOAD
-// =========================
 exports.uploadAudioService =
   async (req) => {
     if (!req.file) {
@@ -22,23 +17,31 @@ exports.uploadAudioService =
       series,
     } = req.body;
 
-    if (!title) {
+    if (!title?.trim()) {
       throw new Error(
         "Audio title is required"
       );
     }
 
+    if (!category?.trim()) {
+      throw new Error(
+        "Category is required"
+      );
+    }
+
     const audio =
       await Audio.create({
-        title,
+        title:
+          title.trim(),
 
-        artist,
+        artist:
+          artist?.trim() || "",
 
         category:
-          category || "English",
+          category.trim(),
 
         series:
-          series || "",
+          series?.trim() || "",
 
         filename:
           req.file.filename,
@@ -75,11 +78,11 @@ exports.updateAudioService = async (
   }
 
   if (req.body.category !== undefined) {
-    audio.category = req.body.category;
+    audio.category = req.body.category.trim();
   }
 
   if (req.body.series !== undefined) {
-    audio.series = req.body.series;
+    audio.series = req.body.series.trim();
   }
 
   // =========================
@@ -114,10 +117,6 @@ exports.getAudiosService =
       }
     );
   };
-
-// =========================
-// DELETE
-// =========================
 exports.deleteAudioService =
   async (id) => {
     const audio =
