@@ -24,6 +24,7 @@ const planController   = require("./controllers/plan.controller");
 const subscribeController = require('./routes/subscriber.routes')
 const videoController = require('./routes/video.routes')
 const bankRequestRoutes = require("./routes/bankRequest.routes");
+const businessRoutes = require("./routes/business.routes")
 
 
 
@@ -57,18 +58,9 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ── Static files ──────────────────────────────────────────────────────────────
-// app.js lives in backend/src/ so __dirname = backend/src
-// storage/ is at backend/storage/ — go up one level with ".."
-
-// Cover images — PUBLIC, loaded directly by <img> tags
 app.use("/storage/covers", express.static(path.join(__dirname, "..", "storage", "covers")));
 
-// uploads (article covers, bank images, etc.)
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
-
-// NOTE: storage/books and storage/reports are intentionally NOT static-served.
-// They are protected and only accessible via authenticated download controllers.
 
 app.use("/api/auth",        authRoutes);
 app.use("/api/audio",       audioRoutes);
@@ -85,14 +77,13 @@ app.use("/api/brokers",     brokerRoutes);
 app.use("/api/investments",  investmentRoutes);
 app.use("/api/contact",     contactRoutes);
 app.use("/api/subscribers",subscribeController)
-app.use("/api/video",videoController)
+app.use("/api/video",videoController) 
 app.use("/api/bank-requests",bankRequestRoutes);
-// ── 404 ───────────────────────────────────────────────────────────────────────
+app.use("/api/businesses",businessRoutes);
+
 app.use((req, res) => {
   return res.status(404).json({ success: false, message: "Route not found" });
 });
-
-// ── Global error handler ──────────────────────────────────────────────────────
 app.use((error, req, res, next) => {
   console.error("Global Error:", error);
   return res.status(error.status || 500).json({
