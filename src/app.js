@@ -25,7 +25,7 @@ const subscribeController = require('./routes/subscriber.routes')
 const videoController = require('./routes/video.routes')
 const bankRequestRoutes = require("./routes/bankRequest.routes");
 const businessRoutes = require("./routes/business.routes")
-const templatesRoutes = require('./routes/template.routes')
+// const templatesRoutes = require('./routes/template.routes')
 
 
 
@@ -81,7 +81,7 @@ app.use("/api/subscribers",subscribeController)
 app.use("/api/video",videoController) 
 app.use("/api/bank-requests",bankRequestRoutes);
 app.use("/api/businesses",businessRoutes); 
-app.use("/api/templates",templatesRoutes); 
+// app.use("/api/templates",templatesRoutes); 
 
 app.use((req, res) => {
   return res.status(404).json({ success: false, message: "Route not found" });
